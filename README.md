@@ -31,10 +31,10 @@ users[2]{id,name,role}:
 
 ## Resources
 
-- [TOON Specification](https://github.com/johannschopplich/toon/blob/main/SPEC.md)
-- [Main Repository](https://github.com/johannschopplich/toon)
-- [Benchmarks & Performance](https://github.com/johannschopplich/toon#benchmarks)
-- [Other Language Implementations](https://github.com/johannschopplich/toon#other-implementations)
+- [TOON Specification](https://github.com/toon-format/spec/blob/main/SPEC.md)
+- [Main Repository](https://github.com/toon-format/toon)
+- [Benchmarks & Performance](https://github.com/toon-format/toon#benchmarks)
+- [Other Language Implementations](https://github.com/toon-format/toon#other-implementations)
 
 ## Future Usage
 
@@ -74,7 +74,7 @@ func main() {
 
 ## Contributing
 
-Interested in implementing TOON for Go? Check out the [specification](https://github.com/johannschopplich/toon/blob/main/SPEC.md) and feel free to contribute!
+Interested in implementing TOON for Go? Check out the [specification](https://github.com/toon-format/spec/blob/main/SPEC.md) and feel free to contribute!
 
 ## License
 
