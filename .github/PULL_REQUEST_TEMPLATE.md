@@ -42,10 +42,9 @@ Closes #
 
 - [ ] All existing tests pass
 - [ ] Added new tests for changes
-- [ ] Tested on Python 3.11
-- [ ] Tested on Python 3.12
-- [ ] Tested on Python 3.13
-- [ ] Tested on Python 3.14
+- [ ] Tested on Go 1.23
+- [ ] Tested on Go 1.24
+- [ ] Tested on Go 1.25
 
 ## Checklist
 
@@ -53,8 +52,7 @@ Closes #
 
 - [ ] My code follows the project's coding standards
 - [ ] I have added type hints to new code
-- [ ] I have run `ruff check` and `ruff format`
-- [ ] I have run `mypy` on my changes
+- [ ] I have run `go fmt`
 - [ ] I have added tests that prove my fix/feature works
 - [ ] New and existing tests pass locally
 - [ ] I have updated documentation (if needed)
