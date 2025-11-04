@@ -6,11 +6,7 @@
 
 **Token-Oriented Object Notation** is a compact, human-readable format designed for passing structured data to Large Language Models with significantly reduced token usage.
 
-## Status
-
-🚧 **This package is currently a namespace reservation.** Full implementation coming soon!
-
-### Example
+## Example
 
 **JSON** (verbose):
 ```json
@@ -29,16 +25,66 @@ users[2]{id,name,role}:
   2,Bob,user
 ```
 
-## Resources
+## Usage
 
-- [TOON Specification](https://github.com/toon-format/spec/blob/main/SPEC.md)
-- [Main Repository](https://github.com/toon-format/toon)
-- [Benchmarks & Performance](https://github.com/toon-format/toon#benchmarks)
-- [Other Language Implementations](https://github.com/toon-format/toon#other-implementations)
+### Marshal and Unmarshal
 
-## Future Usage
+```go
+package main
 
-Once implemented, the package will provide:
+import (
+    "fmt"
+
+    "github.com/toon-format/toon-go"
+)
+
+type User struct {
+    ID    int    `toon:"id"`
+    Name  string `toon:"name"`
+    Role  string `toon:"role"`
+}
+
+type Payload struct {
+    Users []User `toon:"users"`
+}
+
+func main() {
+    in := Payload{
+        Users: []User{
+            {ID: 1, Name: "Alice", Role: "admin"},
+            {ID: 2, Name: "Bob", Role: "user"},
+        },
+    }
+
+    encoded, err := toon.Marshal(in, toon.WithLengthMarkers(true))
+    if err != nil {
+        panic(err)
+    }
+    fmt.Println(string(encoded))
+
+    var out Payload
+    if err := toon.Unmarshal(encoded, &out); err != nil {
+        panic(err)
+    }
+    fmt.Printf("first user: %+v\n", out.Users[0])
+}
+```
+
+### Unmarshal into Maps
+
+`Unmarshal` can populate dynamic maps, mimicking the `encoding/json` package:
+
+```go
+var doc map[string]any
+if err := toon.Unmarshal(encoded, &doc); err != nil {
+    panic(err)
+}
+fmt.Printf("users: %#v\n", doc["users"])
+```
+
+### Decode Without Structs
+
+If you do not have a destination struct, use `Decode` for a dynamic representation:
 
 ```go
 package main
@@ -49,28 +95,23 @@ import (
 )
 
 func main() {
-    data := map[string]interface{}{
-        "users": []map[string]interface{}{
-            {"id": 1, "name": "Alice", "role": "admin"},
-            {"id": 2, "name": "Bob", "role": "user"},
-        },
-    }
-
-    // Encode to TOON
-    encoded, err := toon.Encode(data, nil)
-    if err != nil {
-        panic(err)
-    }
-    fmt.Println(encoded)
-
-    // Decode from TOON
-    decoded, err := toon.Decode(encoded, nil)
+    raw := []byte("users[2]{id,name,role}:\n  1,Alice,admin\n  2,Bob,user\n")
+    decoded, err := toon.Decode(raw)
     if err != nil {
         panic(err)
     }
     fmt.Printf("%+v\n", decoded)
 }
 ```
+
+For more runnable samples, explore the programs in `./examples`.
+
+## Resources
+
+- [TOON Specification](https://github.com/toon-format/spec/blob/main/SPEC.md)
+- [Main Repository](https://github.com/toon-format/toon)
+- [Benchmarks & Performance](https://github.com/toon-format/toon#benchmarks)
+- [Other Language Implementations](https://github.com/toon-format/toon#other-implementations)
 
 ## Contributing
 
