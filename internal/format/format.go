@@ -171,12 +171,12 @@ func IsValidUnquotedKey(key string) bool {
 	}
 	for pos, r := range key {
 		if pos == 0 {
-			if !(r == '_' || unicode.IsLetter(r)) {
+			if r != '_' && !unicode.IsLetter(r) {
 				return false
 			}
 			continue
 		}
-		if !(unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '.') {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' && r != '.' {
 			return false
 		}
 	}

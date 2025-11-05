@@ -553,7 +553,7 @@ func parseBracketSegment(segment string) (int, Delimiter, error) {
 		return 0, DelimiterComma, errors.New("missing array length")
 	}
 	var digits strings.Builder
-	var delim Delimiter = DelimiterComma
+	var delim = DelimiterComma
 	for _, r := range segment {
 		if unicode.IsDigit(r) {
 			digits.WriteRune(r)
@@ -639,7 +639,7 @@ func hasForbiddenLeadingZeros(token string) bool {
 	if len(token) < 2 {
 		return false
 	}
-	if token[0] != '0' && !(len(token) > 1 && token[0] == '-' && token[1] == '0') {
+	if token[0] != '0' && (len(token) <= 1 || token[0] != '-' || token[1] != '0') {
 		return false
 	}
 	// tokens like -0.x are legitimate numbers.

@@ -293,35 +293,6 @@ func (s *encodeState) encodeObjectListItem(obj Object, depth int, ctx formatCont
 	return s.encodeObject(obj, depth+1)
 }
 
-func (s *encodeState) encodeArrayForObjectField(keyLiteral string, values []normalizedValue, depth int, ctx formatContext) error {
-	if isPrimitiveArray(values) {
-		header := renderHeader(keyLiteral, len(values), ctx.active, s.cfg.includeLengthMarks, nil)
-		line := s.indent(depth) + header
-		if len(values) > 0 {
-			inline := make([]string, 0, len(values))
-			for _, v := range values {
-				token, err := formatPrimitive(v, ctx)
-				if err != nil {
-					return err
-				}
-				inline = append(inline, token)
-			}
-			line += " " + strings.Join(inline, string(ctx.active.rune()))
-		}
-		s.emit(line)
-		return nil
-	}
-
-	header := renderHeader(keyLiteral, len(values), ctx.active, s.cfg.includeLengthMarks, nil)
-	s.emit(s.indent(depth) + header)
-	for _, item := range values {
-		if err := s.encodeListItem(item, depth+1, ctx); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (s *encodeState) encodeArrayForObjectListItem(keyLiteral string, values []normalizedValue, depth int, ctx formatContext) error {
 	delimiter := ctx.active
 	if isPrimitiveArray(values) {
