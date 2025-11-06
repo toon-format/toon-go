@@ -199,7 +199,7 @@ func (s *encodeState) encodeArray(key string, values []normalizedValue, depth in
 	s.emit(indent + header)
 	for _, item := range values {
 		if root {
-			if err := s.encodeListItem(item, depth, ctx); err != nil {
+			if err := s.encodeListItem(item, depth+1, ctx); err != nil {
 				return err
 			}
 			continue
@@ -295,9 +295,30 @@ func (s *encodeState) encodeObjectListItem(obj Object, depth int, ctx formatCont
 
 func (s *encodeState) encodeArrayForObjectListItem(keyLiteral string, values []normalizedValue, depth int, ctx formatContext) error {
 	delimiter := ctx.active
+	indent := s.indent(depth)
+
+	if fields, ok := detectTabular(values); ok {
+		header := renderHeader(keyLiteral, len(values), delimiter, s.cfg.includeLengthMarks, fields)
+		s.emit(indent + "- " + header)
+		for _, row := range values {
+			obj := row.(Object)
+			rowLine := s.indent(depth + 1)
+			rowValues := make([]string, 0, len(fields))
+			for _, field := range fields {
+				token, err := formatPrimitive(objField(obj, field), ctx)
+				if err != nil {
+					return err
+				}
+				rowValues = append(rowValues, token)
+			}
+			s.emit(rowLine + strings.Join(rowValues, string(delimiter.rune())))
+		}
+		return nil
+	}
+
 	if isPrimitiveArray(values) {
 		header := renderHeader(keyLiteral, len(values), delimiter, s.cfg.includeLengthMarks, nil)
-		line := s.indent(depth) + "- " + header
+		line := indent + "- " + header
 		if len(values) > 0 {
 			inline := make([]string, 0, len(values))
 			for _, v := range values {
@@ -314,9 +335,9 @@ func (s *encodeState) encodeArrayForObjectListItem(keyLiteral string, values []n
 	}
 
 	header := renderHeader(keyLiteral, len(values), delimiter, s.cfg.includeLengthMarks, nil)
-	s.emit(s.indent(depth) + "- " + header)
+	s.emit(indent + "- " + header)
 	for _, item := range values {
-		if err := s.encodeListItem(item, depth, ctx); err != nil {
+		if err := s.encodeListItem(item, depth+1, ctx); err != nil {
 			return err
 		}
 	}

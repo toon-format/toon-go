@@ -179,5 +179,8 @@ func normalizeNumberString(s string) (normalizedValue, error) {
 	if math.IsInf(f, 0) || math.IsNaN(f) {
 		return nil, nil
 	}
+	if f == 0 {
+		f = 0
+	}
 	return numberValue{literal: strconv.FormatFloat(f, 'f', -1, 64)}, nil
 }

@@ -137,10 +137,7 @@ func computeIndent(line string, cfg decoderOptions) (int, string, error) {
 func (p *parser) parseDocument() (any, error) {
 	p.skipBlankLinesOutsideArrays()
 	if p.pos >= len(p.lines) {
-		if p.cfg.strict {
-			return nil, errors.New("toon: empty input in strict mode")
-		}
-		return nil, nil
+		return map[string]any{}, nil
 	}
 
 	nonBlank := p.countRemainingNonBlank()
@@ -252,6 +249,9 @@ func (p *parser) parseArray(header parsedHeader, depth int) (any, error) {
 			line := p.current()
 			if line.blank {
 				if ctx.strict {
+					if nextIndent, ok := p.nextNonBlankIndent(p.pos); !ok || nextIndent <= depth {
+						break
+					}
 					return nil, errorAt(line.number, "blank line inside tabular array")
 				}
 				p.pos++
@@ -263,8 +263,12 @@ func (p *parser) parseArray(header parsedHeader, depth int) (any, error) {
 			if line.indent != depth+1 {
 				return nil, errorAt(line.number, "invalid indentation for tabular row")
 			}
+			trimmed := strings.TrimSpace(line.content)
+			if indexOutsideQuotes(trimmed, ':') != -1 {
+				break
+			}
 			p.pos++
-			raw, err := parsepkg.SplitInlineValues(strings.TrimSpace(line.content), delimiter)
+			raw, err := parsepkg.SplitInlineValues(trimmed, delimiter)
 			if err != nil {
 				return nil, errorWrap(line.number, err)
 			}
@@ -298,6 +302,9 @@ func (p *parser) parseArray(header parsedHeader, depth int) (any, error) {
 		line := p.current()
 		if line.blank {
 			if ctx.strict {
+				if nextIndent, ok := p.nextNonBlankIndent(p.pos); !ok || nextIndent <= depth {
+					break
+				}
 				return nil, errorAt(line.number, "blank line inside list array")
 			}
 			p.pos++
@@ -359,7 +366,7 @@ func (p *parser) parseArray(header parsedHeader, depth int) (any, error) {
 				return nil, errorWrap(line.number, err)
 			}
 			if rest == "" {
-				obj, err := p.parseObject(depth + 2)
+				obj, err := p.parseObject(depth + 3)
 				if err != nil {
 					return nil, err
 				}
@@ -414,11 +421,23 @@ func (p *parser) countRemainingNonBlank() int {
 	return count
 }
 
+func (p *parser) nextNonBlankIndent(from int) (int, bool) {
+	for i := from + 1; i < len(p.lines); i++ {
+		if !p.lines[i].blank {
+			return p.lines[i].indent, true
+		}
+	}
+	return 0, false
+}
+
 func (p *parser) collectObjectListSiblings(obj map[string]any, depth int) error {
 	for p.pos < len(p.lines) {
 		next := p.current()
 		if next.blank {
 			if p.cfg.strict {
+				if nextIndent, ok := p.nextNonBlankIndent(p.pos); !ok || nextIndent <= depth+1 {
+					break
+				}
 				return errorAt(next.number, "blank line inside object list item")
 			}
 			p.pos++
@@ -475,7 +494,7 @@ type parsedHeader struct {
 }
 
 func tryParseHeader(content string) (parsedHeader, bool, error) {
-	colon := strings.IndexRune(content, ':')
+	colon := indexOutsideQuotes(content, ':')
 	if colon == -1 {
 		return parsedHeader{}, false, nil
 	}
@@ -484,18 +503,18 @@ func tryParseHeader(content string) (parsedHeader, bool, error) {
 	if left == "" {
 		return parsedHeader{}, false, nil
 	}
-	bracketStart := strings.IndexRune(left, '[')
+	bracketStart := indexOutsideQuotes(left, '[')
 	if bracketStart == -1 {
 		return parsedHeader{}, false, nil
 	}
-	bracketEnd := strings.IndexRune(left[bracketStart:], ']')
-	if bracketEnd == -1 {
+	rest := left[bracketStart+1:]
+	bracketOffset := indexOutsideQuotes(rest, ']')
+	if bracketOffset == -1 {
 		return parsedHeader{}, false, errors.New("missing closing bracket in array header")
 	}
-	bracketEnd += bracketStart
 	keyPart := strings.TrimSpace(left[:bracketStart])
-	bracketSegment := left[bracketStart+1 : bracketEnd]
-	fieldSegment := strings.TrimSpace(left[bracketEnd+1:])
+	bracketSegment := rest[:bracketOffset]
+	fieldSegment := strings.TrimSpace(rest[bracketOffset+1:])
 
 	header := parsedHeader{
 		key:       "",
@@ -581,7 +600,7 @@ func parseBracketSegment(segment string) (int, Delimiter, error) {
 }
 
 func splitKeyValue(content string) (string, string, error) {
-	colon := strings.IndexRune(content, ':')
+	colon := indexOutsideQuotes(content, ':')
 	if colon == -1 {
 		return "", "", errors.New("missing colon after key")
 	}
@@ -630,6 +649,9 @@ func decodePrimitiveToken(token string) (any, error) {
 		if err != nil {
 			return nil, err
 		}
+		if num == 0 {
+			num = 0
+		}
 		return num, nil
 	}
 	return token, nil
@@ -653,6 +675,23 @@ func hasForbiddenLeadingZeros(token string) bool {
 }
 
 func isKeyValue(content string) bool {
-	colon := strings.IndexRune(content, ':')
-	return colon > 0
+	return indexOutsideQuotes(content, ':') > 0
+}
+
+func indexOutsideQuotes(s string, target rune) int {
+	inQuotes := false
+	escaped := false
+	for idx, r := range s {
+		switch {
+		case escaped:
+			escaped = false
+		case r == '\\' && inQuotes:
+			escaped = true
+		case r == '"':
+			inQuotes = !inQuotes
+		case !inQuotes && r == target:
+			return idx
+		}
+	}
+	return -1
 }
