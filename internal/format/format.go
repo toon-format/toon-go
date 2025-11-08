@@ -156,7 +156,7 @@ func HasLeadingZeroDecimal(s string) bool {
 // EncodeKey applies TOON key quoting rules.
 func EncodeKey(key string) (string, error) {
 	if key == "" {
-		return "", fmt.Errorf("toon: empty key is invalid")
+		return QuoteString(key)
 	}
 	if IsValidUnquotedKey(key) {
 		return key, nil
