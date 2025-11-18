@@ -6,6 +6,10 @@
 package toon
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/toon-format/toon-go/internal/codec"
@@ -39,6 +43,105 @@ type Object = codec.Object
 // NewObject constructs an ordered Object from the provided key/value pairs.
 func NewObject(fields ...Field) Object {
 	return codec.NewObject(fields...)
+}
+
+// TOON represents a raw TOON document. It implements Marshaler and Unmarshaler
+// and can be used to delay TOON decoding or precompute a TOON encoding.
+type TOON []byte
+
+// MarshalText implements encoding.TextMarshaler.
+// It returns the TOON encoding of t unchanged.
+func (t TOON) MarshalText() ([]byte, error) {
+	if t == nil {
+		return []byte("null"), nil
+	}
+	return t, nil
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+// It sets t to a copy of data.
+func (t *TOON) UnmarshalText(data []byte) error {
+	if t == nil {
+		return errors.New("toon: UnmarshalText on nil pointer")
+	}
+	*t = append((*t)[0:0], data...)
+	return nil
+}
+
+// MarshalJSON implements json.Marshaler.
+// It converts the TOON document back to JSON format.
+func (t TOON) MarshalJSON() ([]byte, error) {
+	if t == nil {
+		return []byte("null"), nil
+	}
+	// Decode TOON to Go value
+	v, err := Decode(t)
+	if err != nil {
+		return nil, err
+	}
+	// Marshal to JSON
+	return json.Marshal(v)
+}
+
+// UnmarshalJSON implements json.Unmarshaler.
+// It converts JSON data to TOON format and stores it.
+func (t *TOON) UnmarshalJSON(data []byte) error {
+	if t == nil {
+		return errors.New("toon: UnmarshalJSON on nil pointer")
+	}
+	// First unmarshal the JSON to a Go value
+	var v any
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	// Marshal it to TOON format
+	toonBytes, err := Marshal(v)
+	if err != nil {
+		return err
+	}
+	*t = append((*t)[0:0], toonBytes...)
+	return nil
+}
+
+// Scan implements database/sql.Scanner.
+// It allows reading TOON values from SQL databases.
+func (t *TOON) Scan(src any) error {
+	if t == nil {
+		return errors.New("toon: Scan on nil pointer")
+	}
+	switch v := src.(type) {
+	case []byte:
+		*t = append((*t)[0:0], v...)
+		return nil
+	case string:
+		*t = append((*t)[0:0], []byte(v)...)
+		return nil
+	case nil:
+		*t = nil
+		return nil
+	default:
+		return fmt.Errorf("toon: cannot scan type %T into TOON", src)
+	}
+}
+
+// Value implements database/sql/driver.Valuer.
+// It allows writing TOON values to SQL databases.
+func (t TOON) Value() (driver.Value, error) {
+	if t == nil {
+		return nil, nil
+	}
+	return []byte(t), nil
+}
+
+// String returns the TOON document as a string.
+// It implements fmt.Stringer.
+func (t TOON) String() string {
+	return string(t)
+}
+
+// IsNil returns true if the TOON value is nil or empty.
+func (t TOON) IsNil() bool {
+	return len(t) == 0
 }
 
 // Encoder serializes Go values as TOON documents.

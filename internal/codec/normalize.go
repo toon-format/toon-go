@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"encoding"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -61,6 +62,12 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 		return normalize(&val, cfg)
 	case time.Time:
 		return cfg.timeFormatter(val), nil
+	case encoding.TextMarshaler:
+		text, err := val.MarshalText()
+		if err != nil {
+			return nil, err
+		}
+		return string(text), nil
 	case fmt.Stringer:
 		return val.String(), nil
 	case Object:
