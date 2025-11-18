@@ -1,6 +1,8 @@
 name: CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
     types: [opened, edited, synchronize, reopened]
 
@@ -48,7 +50,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: 'stable'
 
       - name: Verify go.mod and go.sum
         run: |
@@ -61,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ["1.23", "1.24", "1.25"]
+        go-version: ["1.23", "1.24"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -95,7 +97,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: 'stable'
 
       - name: Run govulncheck
         run: |
@@ -114,7 +116,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: 'stable'
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v8
