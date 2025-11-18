@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"encoding"
 	"errors"
 	"fmt"
 	"math"
@@ -33,6 +34,27 @@ func UnmarshalString(s string, v any, opts ...DecoderOption) error {
 func assignValue(dst reflect.Value, src any) error {
 	if !dst.CanSet() {
 		return errors.New("toon: cannot set destination value")
+	}
+
+	// Check for encoding.TextUnmarshaler interface
+	if dst.CanAddr() {
+		if tu, ok := dst.Addr().Interface().(encoding.TextUnmarshaler); ok {
+			var text []byte
+			switch v := src.(type) {
+			case string:
+				text = []byte(v)
+			case []byte:
+				text = v
+			default:
+				// For other types, marshal to TOON first
+				encoded, err := MarshalString(src)
+				if err != nil {
+					return err
+				}
+				text = []byte(encoded)
+			}
+			return tu.UnmarshalText(text)
+		}
 	}
 
 	switch dst.Kind() {

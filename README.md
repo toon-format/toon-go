@@ -104,6 +104,97 @@ func main() {
 }
 ```
 
+### Capturing Tool Call Payloads with the TOON Type
+
+The `toon.TOON` type automatically converts JSON payloads to compact TOON format. When you unmarshal JSON with a TOON field, nested objects are converted to TOON's efficient representation.
+
+#### Basic Usage
+
+```go
+type Response struct {
+    EventID string    `json:"event_id"`
+    Payload toon.TOON `json:"payload"`  // Converts JSON to TOON automatically
+}
+
+// Tool call returns JSON with nested payload
+jsonResponse := `{
+  "event_id": "evt_xyz",
+  "payload": {
+    "id": "order_xyz",
+    "amount": 99.99,
+    "items": ["widget", "gadget"]
+  }
+}`
+
+// Unmarshal JSON - payload automatically converted to TOON format
+var response Response
+json.Unmarshal([]byte(jsonResponse), &response)
+
+fmt.Printf("Event ID: %s\n", response.EventID)
+// Output: Event ID: evt_xyz
+
+// Payload is stored in compact TOON format
+fmt.Printf("Payload:\n%s\n", response.Payload.String())
+// Output:
+// amount: 99.99
+// id: order_xyz
+// items[2]: widget,gadget
+
+// Process the payload when needed
+payloadData, _ := toon.Decode(response.Payload)
+payloadMap := payloadData.(map[string]any)
+fmt.Printf("Order ID: %s\n", payloadMap["id"])     // order_xyz
+fmt.Printf("Amount: %.2f\n", payloadMap["amount"]) // 99.99
+
+// Round-trip back to JSON works seamlessly
+jsonBytes, _ := json.Marshal(response)
+// Payload automatically converts back: {"event_id":"evt_xyz","payload":{...}}
+```
+
+#### Why Use TOON for Payloads?
+
+Automatic JSON-to-TOON conversion gives you:
+- **Compact storage** - TOON format is 30-50% smaller than JSON for structured data
+- **Human-readable** - Easy to read in logs and databases
+- **Delay parsing** - Only decode when you actually need the data
+- **Flexible schemas** - Works with any JSON structure, no type definitions needed
+- **Round-trip safe** - Converts back to JSON automatically when marshaling
+
+#### Interfaces Implemented
+
+The `TOON` type implements standard Go interfaces for seamless integration:
+
+- `json.Marshaler` / `json.Unmarshaler` - JSON support (handles nested objects)
+- `encoding.TextMarshaler` / `encoding.TextUnmarshaler` - Text-based formats
+- `database/sql.Scanner` / `driver.Valuer` - Direct database operations
+- `fmt.Stringer` - String representation via `String()` method
+- `IsNil()` helper - Check for empty/nil values
+
+#### Working with TOON Documents
+
+You can also use `TOON` to store raw TOON documents within structs:
+
+```go
+type Config struct {
+    AppName  string    `toon:"app_name"`
+    Version  int       `toon:"version"`
+    Settings toon.TOON `toon:"settings"`  // Raw TOON content
+}
+
+cfg := Config{
+    AppName:  "MyApp",
+    Version:  1,
+    Settings: toon.TOON("timeout: 30\nretries: 3\nverbose: true"),
+}
+
+// Marshal to TOON - Settings preserved as-is
+encoded, _ := toon.MarshalString(cfg)
+// Output:
+// app_name: MyApp
+// version: 1
+// settings: "timeout: 30\nretries: 3\nverbose: true"
+```
+
 For more runnable samples, explore the programs in `./examples`.
 
 ## Resources
