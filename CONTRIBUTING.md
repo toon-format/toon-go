@@ -28,6 +28,10 @@ go test ./...
 
 ## Coding Standards
 
+### Go Version Support
+
+This project targets Go 1.21 and above.
+
 ### Code Style
 
 - Follow Go standard formatting conventions
@@ -37,7 +41,7 @@ go test ./...
 ### Testing
 
 - All new features must include tests
-- Aim for high test coverage
+- Maintain test coverage at **85%+ line coverage**
 - Tests should cover edge cases and spec compliance
 - Run the full test suite:
   ```bash
@@ -55,11 +59,13 @@ Before submitting changes that affect encoding/decoding behavior:
 
 ## Pull Request Guidelines
 
-- **Title**: Use a clear, descriptive title (e.g., "Add support for nested arrays", "Fix: Handle edge case in decoder")
+- **Title**: Use a clear, descriptive title
 - **Description**: Explain what changes you made and why
 - **Tests**: Include tests for your changes
-- **Documentation**: Update README or docstrings if needed
+- **Documentation**: Update README or documentation if needed
 - **Commits**: Use clear commit messages ([Conventional Commits](https://www.conventionalcommits.org/) preferred)
+
+Your pull request will use our standard template which guides you through the required information.
 
 ## Communication
 
@@ -69,7 +75,12 @@ Before submitting changes that affect encoding/decoding behavior:
 
 ## Maintainers
 
-This is a collaborative project. All maintainers have equal decision-making power. For major architectural decisions, please open a discussion issue first.
+This is a collaborative project. Current maintainers:
+
+- [@bpradana](https://github.com/bpradana)
+- [@johannschopplich](https://github.com/johannschopplich)
+
+All maintainers have equal and consensual decision-making power. For major architectural decisions, please open a discussion issue first.
 
 ## License
 
