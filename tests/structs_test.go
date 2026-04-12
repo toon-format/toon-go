@@ -124,3 +124,15 @@ func TestJsonFieldConflict(t *testing.T) {
 	}
 	expectLines(t, doc, "name: value")
 }
+
+func TestJsonSkippedFields(t *testing.T) {
+	datum := jsonFieldSkippedtest{Name: "value", Other: "other"}
+	doc, err := toon.MarshalString(datum)
+	if err != nil {
+		t.Fatalf("MarshalString: %v", err)
+	}
+	if strings.Contains(doc, "value") {
+		t.Fatal("skipped json field in output")
+	}
+	expectLines(t, doc, "other: other")
+}

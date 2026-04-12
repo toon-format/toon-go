@@ -1,5 +1,10 @@
 package toon_test
 
+type jsonFieldSkippedtest struct {
+	Name  string `json:"-"`
+	Other string `json:"-" toon:"other"`
+}
+
 type jsonField struct {
 	Name string `json:"vastly_different_tag_name"`
 }
