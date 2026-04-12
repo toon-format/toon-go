@@ -37,14 +37,15 @@ func buildStructMeta(t reflect.Type) structMeta {
 			continue
 		}
 		tag := sf.Tag.Get("toon")
-		if tag == "-" {
-			continue
-		}
 		// Only check the json tag value if toon is undefined
 		// I don't think its worth adding an option or anything considering you can just overide this with actually setting a toon tag.
 		if tag == "" {
 			tag = sf.Tag.Get("json")
 		}
+		if tag == "-" {
+			continue
+		}
+
 		name, opts := parseStructTag(tag)
 		if name == "" {
 			name = sf.Name
