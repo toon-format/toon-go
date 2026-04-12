@@ -121,7 +121,7 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 }
 
 func normalizeStructValue(val reflect.Value, cfg encoderOptions) (Object, error) {
-	meta := cachedStructMeta(val.Type())
+	meta := cachedStructMeta(val.Type(), cfg.jsonFallback)
 	fields := make([]Field, 0, len(meta.fields))
 	for _, field := range meta.fields {
 		childValue := fieldValueByIndex(val, field.index)

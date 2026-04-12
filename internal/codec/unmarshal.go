@@ -18,11 +18,12 @@ func Unmarshal(data []byte, v any, opts ...DecoderOption) error {
 	if rv.Kind() != reflect.Pointer || rv.IsNil() {
 		return errors.New("toon: Unmarshal target must be a non-nil pointer")
 	}
-	decoded, err := Decode(data, opts...)
+	decoder := NewDecoder(opts...)
+	decoded, err := decoder.Decode(data)
 	if err != nil {
 		return err
 	}
-	return assignValue(rv.Elem(), decoded)
+	return assignValue(rv.Elem(), decoded, decoder.cfg.jsonFallback)
 }
 
 // UnmarshalString decodes the TOON document in s into v.
@@ -30,7 +31,7 @@ func UnmarshalString(s string, v any, opts ...DecoderOption) error {
 	return Unmarshal([]byte(s), v, opts...)
 }
 
-func assignValue(dst reflect.Value, src any) error {
+func assignValue(dst reflect.Value, src any, useJsonFallback bool) error {
 	if !dst.CanSet() {
 		return errors.New("toon: cannot set destination value")
 	}
@@ -51,20 +52,20 @@ func assignValue(dst reflect.Value, src any) error {
 		if dst.IsNil() {
 			dst.Set(reflect.New(dst.Type().Elem()))
 		}
-		return assignValue(dst.Elem(), src)
+		return assignValue(dst.Elem(), src, useJsonFallback)
 	case reflect.Struct:
 		obj, ok := src.(map[string]any)
 		if !ok {
 			return fmt.Errorf("toon: expected object for struct, got %T", src)
 		}
-		meta := cachedStructMeta(dst.Type())
+		meta := cachedStructMeta(dst.Type(), useJsonFallback)
 		for _, fieldMeta := range meta.fields {
 			value, exists := obj[fieldMeta.name]
 			if !exists {
 				continue
 			}
 			fieldValue := dst.FieldByIndex(fieldMeta.index)
-			if err := assignValue(fieldValue, value); err != nil {
+			if err := assignValue(fieldValue, value, useJsonFallback); err != nil {
 				return fmt.Errorf("%s: %w", fieldMeta.name, err)
 			}
 		}
@@ -82,7 +83,7 @@ func assignValue(dst reflect.Value, src any) error {
 		}
 		for key, value := range obj {
 			elem := reflect.New(dst.Type().Elem()).Elem()
-			if err := assignValue(elem, value); err != nil {
+			if err := assignValue(elem, value, useJsonFallback); err != nil {
 				return fmt.Errorf("%s: %w", key, err)
 			}
 			dst.SetMapIndex(reflect.ValueOf(key), elem)
@@ -105,7 +106,7 @@ func assignValue(dst reflect.Value, src any) error {
 		}
 		slice := reflect.MakeSlice(dst.Type(), len(arr), len(arr))
 		for i, item := range arr {
-			if err := assignValue(slice.Index(i), item); err != nil {
+			if err := assignValue(slice.Index(i), item, useJsonFallback); err != nil {
 				return fmt.Errorf("index %d: %w", i, err)
 			}
 		}
@@ -120,7 +121,7 @@ func assignValue(dst reflect.Value, src any) error {
 			return fmt.Errorf("toon: array length mismatch: expected %d, got %d", dst.Len(), len(arr))
 		}
 		for i := 0; i < dst.Len(); i++ {
-			if err := assignValue(dst.Index(i), arr[i]); err != nil {
+			if err := assignValue(dst.Index(i), arr[i], useJsonFallback); err != nil {
 				return fmt.Errorf("index %d: %w", i, err)
 			}
 		}

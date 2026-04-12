@@ -50,6 +50,7 @@ type encoderOptions struct {
 	indentSize         int
 	documentDelimiter  Delimiter
 	arrayDelimiter     Delimiter
+	jsonFallback       bool
 	includeLengthMarks bool
 	timeFormatter      func(time.Time) string
 }
@@ -62,6 +63,14 @@ func defaultEncoderOptions() encoderOptions {
 		timeFormatter: func(t time.Time) string {
 			return t.UTC().Format(time.RFC3339Nano)
 		},
+	}
+}
+
+// WithJsonFallbackEncoder enables using json tags if there is a lack of toon tags
+// (Encoder is used in the name since this is present on encoding / decoding)
+func WithJsonFallbackEncoder(fallback bool) EncoderOption {
+	return func(o *encoderOptions) {
+		o.jsonFallback = fallback
 	}
 }
 
@@ -116,6 +125,7 @@ type DecoderOption func(*decoderOptions)
 type decoderOptions struct {
 	indentSize    int
 	strict        bool
+	jsonFallback  bool
 	documentDelim Delimiter
 }
 
@@ -123,7 +133,16 @@ func defaultDecoderOptions() decoderOptions {
 	return decoderOptions{
 		indentSize:    2,
 		strict:        true,
+		jsonFallback:  true,
 		documentDelim: DelimiterComma,
+	}
+}
+
+// WithJsonFallback toggles using json tags incase of no toon tags
+// (Encoder is used in the name since this is present on encoding / decoding)
+func WithJsonFallbackDecoder(fallback bool) DecoderOption {
+	return func(o *decoderOptions) {
+		o.jsonFallback = fallback
 	}
 }
 

@@ -87,6 +87,11 @@ func WithTimeFormatter(formatter func(time.Time) string) EncoderOption {
 	return codec.WithTimeFormatter(formatter)
 }
 
+// WithJsonFallbackEncoder enables using json tags if there is a lack of toon tags (Encoder is used in the name since this is present on encoding / decoding)
+func WithJsonFallbackEncoder(enabled bool) EncoderOption {
+	return codec.WithJsonFallbackEncoder(enabled)
+}
+
 // Decoder parses TOON documents into Go values that match the data model from
 // Section 2. Numbers are returned as float64, objects as map[string]any, and
 // arrays as []any. Strings are unescaped per Section 7.1.
@@ -121,6 +126,11 @@ func WithDecoderIndent(spaces int) DecoderOption {
 // delimiter-aware string parsing when no array header is active.
 func WithDecoderDocumentDelimiter(delimiter Delimiter) DecoderOption {
 	return codec.WithDecoderDocumentDelimiter(delimiter)
+}
+
+// WithJsonFallbackDecoder enables using json tags if there is a lack of toon tags (Decoder is used in the name since this is present on encoding / decoding)
+func WithJsonFallbackDecoder(enabled bool) DecoderOption {
+	return codec.WithJsonFallbackDecoder(enabled)
 }
 
 // Unmarshal decodes the TOON document in data into v, which must be a non-nil
