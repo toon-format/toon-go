@@ -66,7 +66,7 @@ func defaultEncoderOptions() encoderOptions {
 	}
 }
 
-// WithJsonFallbackEncoder enables using json tags if there is a lack of toon tags
+// WithJSONFallbackEncoder enables using json tags if there is a lack of toon tags
 // (Encoder is used in the name since this is present on encoding / decoding)
 func WithJsonFallbackEncoder(fallback bool) EncoderOption {
 	return func(o *encoderOptions) {
