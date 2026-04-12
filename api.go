@@ -87,9 +87,9 @@ func WithTimeFormatter(formatter func(time.Time) string) EncoderOption {
 	return codec.WithTimeFormatter(formatter)
 }
 
-// WithJsonFallbackEncoder enables using json tags if there is a lack of toon tags (Encoder is used in the name since this is present on encoding / decoding)
-func WithJsonFallbackEncoder(enabled bool) EncoderOption {
-	return codec.WithJsonFallbackEncoder(enabled)
+// WithJSONFallbackEncoder enables using json tags if there is a lack of toon tags (Encoder is used in the name since this is present on encoding / decoding)
+func WithJSONFallbackEncoder(enabled bool) EncoderOption {
+	return codec.WithJSONFallbackEncoder(enabled)
 }
 
 // Decoder parses TOON documents into Go values that match the data model from
