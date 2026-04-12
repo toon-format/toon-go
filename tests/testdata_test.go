@@ -1,5 +1,13 @@
 package toon_test
 
+type jsonField struct {
+	Name string `json:"vastly_different_tag_name"`
+}
+
+type jsonAndToonField struct {
+	Name string `json:"vastly_different_tag_name" toon:"name"`
+}
+
 type profile struct {
 	ID     int     `toon:"id"`
 	Name   string  `toon:"name"`

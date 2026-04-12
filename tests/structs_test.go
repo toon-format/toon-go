@@ -106,3 +106,21 @@ func TestPointerOmitEmptyRoundTrip(t *testing.T) {
 		t.Fatalf("age decode mismatch: %#v", decoded.Age)
 	}
 }
+
+func TestJsonField(t *testing.T) {
+	datum := jsonField{Name: "value"}
+	doc, err := toon.MarshalString(datum)
+	if err != nil {
+		t.Fatalf("MarshalString: %v", err)
+	}
+	expectLines(t, doc, "vastly_different_tag_name: value")
+}
+
+func TestJsonFieldConflict(t *testing.T) {
+	datum := jsonAndToonField{Name: "value"}
+	doc, err := toon.MarshalString(datum)
+	if err != nil {
+		t.Fatalf("MarshalString: %v", err)
+	}
+	expectLines(t, doc, "name: value")
+}
