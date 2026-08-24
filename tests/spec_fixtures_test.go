@@ -230,20 +230,11 @@ func encoderOptionsFromFixture(t *testing.T, options map[string]any) []toon.Enco
 		return nil
 	}
 	var result []toon.EncoderOption
-	if value, ok := options["indent"]; ok {
-		result = append(result, toon.WithIndent(asPositiveInt(t, value, "indent")))
+	if value, ok := options["indentSize"]; ok {
+		result = append(result, toon.WithIndent(asPositiveInt(t, value, "indentSize")))
 	}
 	if value, ok := options["delimiter"]; ok {
-		marker := asDelimiter(t, value)
-		result = append(result,
-			toon.WithDocumentDelimiter(marker),
-			toon.WithArrayDelimiter(marker),
-		)
-	}
-	if value, ok := options["lengthMarker"]; ok {
-		if marker, ok := value.(string); ok && marker == "#" {
-			result = append(result, toon.WithLengthMarkers(true))
-		}
+		result = append(result, toon.WithDelimiter(asDelimiter(t, value)))
 	}
 	return result
 }
@@ -254,8 +245,8 @@ func decoderOptionsFromFixture(t *testing.T, options map[string]any) []toon.Deco
 		return nil
 	}
 	var result []toon.DecoderOption
-	if value, ok := options["indent"]; ok {
-		result = append(result, toon.WithDecoderIndent(asPositiveInt(t, value, "indent")))
+	if value, ok := options["indentSize"]; ok {
+		result = append(result, toon.WithDecoderIndent(asPositiveInt(t, value, "indentSize")))
 	}
 	if value, ok := options["strict"]; ok {
 		strict, ok := value.(bool)

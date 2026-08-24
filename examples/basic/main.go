@@ -26,7 +26,7 @@ func main() {
 		Count: 2,
 	}
 
-	encoded, err := toon.Marshal(doc, toon.WithLengthMarkers(true))
+	encoded, err := toon.Marshal(doc)
 	if err != nil {
 		panic(err)
 	}

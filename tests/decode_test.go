@@ -60,7 +60,7 @@ func TestDecodeWithCustomDocumentDelimiter(t *testing.T) {
 		"  - id: c|d",
 	}, "\n")
 
-	root := decodeMap(t, doc, toon.WithDecoderDocumentDelimiter(toon.DelimiterPipe))
+	root := decodeMap(t, doc)
 	records := root["records"].([]any)
 	if len(records) != 2 {
 		t.Fatalf("expected records length 2, got %d", len(records))

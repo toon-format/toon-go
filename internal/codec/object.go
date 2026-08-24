@@ -26,3 +26,13 @@ func (o Object) Len() int {
 func (o Object) IsEmpty() bool {
 	return len(o.Fields) == 0
 }
+
+// get returns the value stored under key, preferring the first occurrence.
+func (o Object) get(key string) (any, bool) {
+	for _, field := range o.Fields {
+		if field.Key == key {
+			return field.Value, true
+		}
+	}
+	return nil, false
+}

@@ -5,7 +5,8 @@ import (
 	"time"
 )
 
-// Delimiter identifies the character used to split values inside array scopes.
+// Delimiter identifies the character used to split field entries, inline array
+// values, tabular row cells, and keyed entry-row cells (§1.5).
 type Delimiter rune
 
 const (
@@ -32,33 +33,39 @@ func (d Delimiter) String() string {
 
 func (d Delimiter) rune() rune {
 	switch d {
-	case DelimiterComma:
-		return ','
-	case DelimiterTab:
-		return '\t'
-	case DelimiterPipe:
-		return '|'
+	case DelimiterComma, DelimiterTab, DelimiterPipe:
+		return rune(d)
 	default:
 		return ','
 	}
+}
+
+// symbol returns the delimiter symbol as it appears inside a bracket segment.
+// Comma is implied by its absence (§6).
+func (d Delimiter) symbol() string {
+	if d == DelimiterComma {
+		return ""
+	}
+	return string(d.rune())
+}
+
+func validDelimiter(d Delimiter) bool {
+	return d == DelimiterComma || d == DelimiterTab || d == DelimiterPipe
 }
 
 // EncoderOption mutates encoding behaviour.
 type EncoderOption func(*encoderOptions)
 
 type encoderOptions struct {
-	indentSize         int
-	documentDelimiter  Delimiter
-	arrayDelimiter     Delimiter
-	includeLengthMarks bool
-	timeFormatter      func(time.Time) string
+	indentSize    int
+	delimiter     Delimiter
+	timeFormatter func(time.Time) string
 }
 
 func defaultEncoderOptions() encoderOptions {
 	return encoderOptions{
-		indentSize:        2,
-		documentDelimiter: DelimiterComma,
-		arrayDelimiter:    DelimiterComma,
+		indentSize: 2,
+		delimiter:  DelimiterComma,
 		timeFormatter: func(t time.Time) string {
 			return t.UTC().Format(time.RFC3339Nano)
 		},
@@ -74,31 +81,38 @@ func WithIndent(spaces int) EncoderOption {
 	}
 }
 
-// WithDocumentDelimiter configures the delimiter that influences quoting
-// decisions outside array scopes.
+// WithDelimiter configures the document delimiter. Conforming encoders declare
+// it as the active delimiter of every header they emit (§11.1).
+func WithDelimiter(delimiter Delimiter) EncoderOption {
+	return func(o *encoderOptions) {
+		if validDelimiter(delimiter) {
+			o.delimiter = delimiter
+		}
+	}
+}
+
+// WithDocumentDelimiter configures the document delimiter.
+//
+// Deprecated: the specification defines a single delimiter option. Use
+// WithDelimiter instead; this alias sets the same value.
 func WithDocumentDelimiter(delimiter Delimiter) EncoderOption {
-	return func(o *encoderOptions) {
-		if delimiter == DelimiterComma || delimiter == DelimiterTab || delimiter == DelimiterPipe {
-			o.documentDelimiter = delimiter
-		}
-	}
+	return WithDelimiter(delimiter)
 }
 
-// WithArrayDelimiter configures the default delimiter declared for arrays that
-// do not explicitly override the active delimiter.
+// WithArrayDelimiter configures the document delimiter.
+//
+// Deprecated: the specification defines a single delimiter option. Use
+// WithDelimiter instead; this alias sets the same value.
 func WithArrayDelimiter(delimiter Delimiter) EncoderOption {
-	return func(o *encoderOptions) {
-		if delimiter == DelimiterComma || delimiter == DelimiterTab || delimiter == DelimiterPipe {
-			o.arrayDelimiter = delimiter
-		}
-	}
+	return WithDelimiter(delimiter)
 }
 
-// WithLengthMarkers enables emitting optional # markers in array headers.
-func WithLengthMarkers(enabled bool) EncoderOption {
-	return func(o *encoderOptions) {
-		o.includeLengthMarks = enabled
-	}
+// WithLengthMarkers is a no-op.
+//
+// Deprecated: the [#N] length-marker syntax was removed in TOON 2.0. Encoders
+// MUST NOT emit it and decoders MUST reject it.
+func WithLengthMarkers(bool) EncoderOption {
+	return func(*encoderOptions) {}
 }
 
 // WithTimeFormatter specifies the formatter used for time.Time normalization.
@@ -114,20 +128,18 @@ func WithTimeFormatter(formatter func(time.Time) string) EncoderOption {
 type DecoderOption func(*decoderOptions)
 
 type decoderOptions struct {
-	indentSize    int
-	strict        bool
-	documentDelim Delimiter
+	indentSize int
+	strict     bool
 }
 
 func defaultDecoderOptions() decoderOptions {
 	return decoderOptions{
-		indentSize:    2,
-		strict:        true,
-		documentDelim: DelimiterComma,
+		indentSize: 2,
+		strict:     true,
 	}
 }
 
-// WithStrictMode toggles the strict-mode diagnostics.
+// WithStrictMode toggles the strict-mode diagnostics of §14.
 func WithStrictMode(strict bool) DecoderOption {
 	return func(o *decoderOptions) {
 		o.strict = strict
@@ -143,12 +155,10 @@ func WithDecoderIndent(spaces int) DecoderOption {
 	}
 }
 
-// WithDecoderDocumentDelimiter configures the delimiter that influences
-// delimiter-aware string parsing when no array header is active.
-func WithDecoderDocumentDelimiter(delimiter Delimiter) DecoderOption {
-	return func(o *decoderOptions) {
-		if delimiter == DelimiterComma || delimiter == DelimiterTab || delimiter == DelimiterPipe {
-			o.documentDelim = delimiter
-		}
-	}
+// WithDecoderDocumentDelimiter is a no-op.
+//
+// Deprecated: the active delimiter is always declared by the nearest header
+// (§11.2), so the document delimiter is not a decoder concept.
+func WithDecoderDocumentDelimiter(Delimiter) DecoderOption {
+	return func(*decoderOptions) {}
 }
