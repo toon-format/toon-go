@@ -70,6 +70,20 @@ func main() {
 }
 ```
 
+### Struct Tags
+
+The `toon` struct tag sets a field's key and options:
+
+```go
+type User struct {
+    ID       int     `toon:"id"`              // rename the field
+    Email    *string `toon:"email,omitempty"` // omit when empty
+    Password string  `toon:"-"`               // never encode or decode
+}
+```
+
+Fields without a tag use the Go field name. `omitempty` skips `nil` pointers and interfaces, zero numbers, `false`, empty strings, slices, and maps, and zero-value structs.
+
 ### Unmarshal into Maps
 
 `Unmarshal` can populate dynamic maps, mimicking the `encoding/json` package:
