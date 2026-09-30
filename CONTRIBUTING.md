@@ -30,7 +30,7 @@ go test ./...
 
 ### Go Version Support
 
-This project targets Go 1.21 and above.
+This project supports the Go version in `go.mod` and newer.
 
 ### Code Style
 
