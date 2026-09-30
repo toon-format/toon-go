@@ -51,7 +51,7 @@ Two features are deliberately absent because the specification removed them:
 The specification requires these choices to be documented:
 
 - **Key order.** Decoded objects are `map[string]any`, which does not retain insertion order, so document key order is not preserved on decode (§2). Encoding preserves the encounter order of `toon.Object` fields; Go maps are encoded in sorted key order.
-- **Numeric domain.** Numbers decode to `float64`. A token outside that domain decodes to its nearest `float64`. On encode, integers beyond IEEE 754 exact range are emitted as quoted plain-decimal strings (§2).
+- **Numeric domain.** Numbers decode to `float64`. A token that overflows `float64` (e.g. `1e999`) decodes as a string; any other token decodes to its nearest `float64`, so integers beyond 2^53 lose precision. On encode, integers beyond IEEE 754 exact range are emitted as quoted plain-decimal strings (§2).
 - **Tabs in indentation.** Rejected in strict mode. In non-strict mode each leading tab counts as one indentation level (§12).
 
 ## Nested Objects in Tabular Form
