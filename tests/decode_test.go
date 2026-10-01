@@ -3,6 +3,7 @@ package toon_test
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/toon-format/toon-go"
 )
@@ -79,5 +80,14 @@ func TestDecoderIndentOption(t *testing.T) {
 
 	if _, err := toon.DecodeString(doc, toon.WithStrictMode(false), toon.WithDecoderIndent(1)); err != nil {
 		t.Fatalf("permissive tab decode failed: %v", err)
+	}
+}
+
+func TestDecodeManyBlankLinesInLinearTime(t *testing.T) {
+	doc := "a: 1\n" + strings.Repeat("\n", 200_000) + "b: 2"
+	start := time.Now()
+	decodeMap(t, doc)
+	if elapsed := time.Since(start); elapsed > time.Second {
+		t.Fatalf("decoding 200k blank lines took %v, want under 1s", elapsed)
 	}
 }

@@ -38,7 +38,7 @@ func (d *Decoder) DecodeString(doc string) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &parser{lines: lines, cfg: d.cfg}
+	p := newParser(lines, d.cfg)
 	return p.parseDocument()
 }
 
@@ -137,6 +137,22 @@ type parser struct {
 	pos   int
 	cfg   decoderOptions
 	spans []*spanState
+	// nonBlank[i] is the index of the first non-blank line at or after i, or
+	// len(lines) if there is none. It keeps blank-line lookahead O(1).
+	nonBlank []int
+}
+
+func newParser(lines []docLine, cfg decoderOptions) *parser {
+	nonBlank := make([]int, len(lines)+1)
+	nonBlank[len(lines)] = len(lines)
+	for i := len(lines) - 1; i >= 0; i-- {
+		if lines[i].blank {
+			nonBlank[i] = nonBlank[i+1]
+		} else {
+			nonBlank[i] = i
+		}
+	}
+	return &parser{lines: lines, cfg: cfg, nonBlank: nonBlank}
 }
 
 // spanState tracks an open header span: the scope's content depth and how many
@@ -184,12 +200,11 @@ func (p *parser) scopeEndsAtBlank(contentDepth int) bool {
 }
 
 func (p *parser) nextNonBlank(from int) (int, bool) {
-	for i := from; i < len(p.lines); i++ {
-		if !p.lines[i].blank {
-			return i, true
-		}
+	if from >= len(p.lines) {
+		return 0, false
 	}
-	return 0, false
+	idx := p.nonBlank[from]
+	return idx, idx < len(p.lines)
 }
 
 func (p *parser) countNonBlank() int {
