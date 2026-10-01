@@ -1,10 +1,12 @@
 package codec
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	formatpkg "github.com/toon-format/toon-go/internal/format"
 	parsepkg "github.com/toon-format/toon-go/internal/parse"
@@ -27,9 +29,27 @@ func NewDecoder(opts ...DecoderOption) *Decoder {
 	return &Decoder{cfg: cfg}
 }
 
-// Decode parses the provided TOON document.
+// Decode parses the provided TOON document. The bytes must be UTF-8; in strict
+// mode ill-formed sequences are an error rather than being passed through (§4).
 func (d *Decoder) Decode(data []byte) (any, error) {
+	if d.cfg.strict && !utf8.Valid(data) {
+		return nil, invalidUTF8Error(data)
+	}
 	return d.DecodeString(string(data))
+}
+
+// invalidUTF8Error reports the line of the first ill-formed UTF-8 sequence.
+func invalidUTF8Error(data []byte) error {
+	offset := 0
+	for offset < len(data) {
+		r, size := utf8.DecodeRune(data[offset:])
+		if r == utf8.RuneError && size <= 1 {
+			break
+		}
+		offset += size
+	}
+	line := bytes.Count(data[:offset], []byte{'\n'}) + 1
+	return errorAt(line, "invalid UTF-8 sequence")
 }
 
 // DecodeString parses the provided TOON document.

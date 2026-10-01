@@ -46,3 +46,18 @@ func TestDecodeInvalidQuotedString(t *testing.T) {
 		t.Fatalf("expected quoted string error")
 	}
 }
+
+func TestDecodeRejectsInvalidUTF8InStrictMode(t *testing.T) {
+	doc := []byte("a: 1\nb: x\xffy")
+	_, err := toon.Decode(doc)
+	if err == nil {
+		t.Fatal("expected an error for ill-formed UTF-8")
+	}
+	if got, want := err.Error(), "line 2: invalid UTF-8 sequence"; got != want {
+		t.Fatalf("error = %q, want %q", got, want)
+	}
+
+	if _, err := toon.Decode(doc, toon.WithStrictMode(false)); err != nil {
+		t.Fatalf("non-strict Decode: %v", err)
+	}
+}
