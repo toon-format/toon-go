@@ -1,11 +1,22 @@
 package toon_test
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/toon-format/toon-go"
 )
+
+func dontexpectLines(t *testing.T, doc string, dontwant ...string) {
+	t.Helper()
+	lines := strings.Split(doc, "\n")
+	for i := range dontwant {
+		if slices.Contains(lines, dontwant[i]) {
+			t.Fatalf("unwanted line found at index %d: %s", i, dontwant[i])
+		}
+	}
+}
 
 func expectLines(t *testing.T, doc string, want ...string) {
 	t.Helper()

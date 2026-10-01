@@ -17,18 +17,31 @@ type structMeta struct {
 	lookup map[string]structFieldMeta
 }
 
-var structCache sync.Map // map[reflect.Type]structMeta
+// Both of these are the same but are seperated to allow a jsonFallback toggle
 
-func cachedStructMeta(t reflect.Type) structMeta {
-	if meta, ok := structCache.Load(t); ok {
-		return meta.(structMeta)
+var structCache sync.Map // map[reflect.Type]structMeta
+var structCacheJson sync.Map
+
+func cachedStructMeta(t reflect.Type, jsonFallback bool) structMeta {
+	if jsonFallback {
+		if meta, ok := structCacheJson.Load(t); ok {
+			return meta.(structMeta)
+		}
+	} else {
+		if meta, ok := structCache.Load(t); ok {
+			return meta.(structMeta)
+		}
 	}
-	meta := buildStructMeta(t)
-	structCache.Store(t, meta)
+	meta := buildStructMeta(t, jsonFallback)
+	if jsonFallback {
+		structCacheJson.Store(t, meta)
+	} else {
+		structCache.Store(t, meta)
+	}
 	return meta
 }
 
-func buildStructMeta(t reflect.Type) structMeta {
+func buildStructMeta(t reflect.Type, jsonFallback bool) structMeta {
 	fields := make([]structFieldMeta, 0, t.NumField())
 	lookup := make(map[string]structFieldMeta, t.NumField())
 	for i := 0; i < t.NumField(); i++ {
@@ -37,9 +50,15 @@ func buildStructMeta(t reflect.Type) structMeta {
 			continue
 		}
 		tag := sf.Tag.Get("toon")
+		// Only check the json tag value if toon is undefined
+		// I don't think its worth adding an option or anything considering you can just overide this with actually setting a toon tag.
+		if tag == "" && jsonFallback {
+			tag = sf.Tag.Get("json")
+		}
 		if tag == "-" {
 			continue
 		}
+
 		name, opts := parseStructTag(tag)
 		if name == "" {
 			name = sf.Name

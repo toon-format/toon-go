@@ -104,6 +104,39 @@ func main() {
 }
 ```
 
+### Use existing json tags
+
+If you have a structure with JSON tags you do not have to add TOON tags.
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/toon-format/toon-go"
+)
+
+type User struct {
+    ID    int    `json:"identifier" toon:"id"` // Toon takes priority over JSON tags
+    Name  string `json:"name"`
+    Role  string `json:"role"`
+}
+
+func main() {
+    in := User{
+        ID:   1,
+        Name: "Alice",
+        Role: "admin",
+    }
+
+    encoded, err := toon.Marshal(in)
+    if err != nil {
+        panic(err)
+    }
+    fmt.Println(string(encoded))
+}
+```
+
 For more runnable samples, explore the programs in `./examples`.
 
 ## Resources

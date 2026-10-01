@@ -106,3 +106,115 @@ func TestPointerOmitEmptyRoundTrip(t *testing.T) {
 		t.Fatalf("age decode mismatch: %#v", decoded.Age)
 	}
 }
+
+/*
+	func TestJsonField(t *testing.T) {
+		datum := jsonField{Name: "value"}
+		doc, err := toon.MarshalString(datum)
+		if err != nil {
+			t.Fatalf("MarshalString: %v", err)
+		}
+		expectLines(t, doc, "vastly_different_tag_name: value")
+	}
+
+	func TestJsonFieldConflict(t *testing.T) {
+		datum := jsonAndToonField{Name: "value"}
+		doc, err := toon.MarshalString(datum)
+		if err != nil {
+			t.Fatalf("MarshalString: %v", err)
+		}
+		expectLines(t, doc, "name: value")
+	}
+
+	func TestJsonSkippedFields(t *testing.T) {
+		toonEncoderJSONEnabled := toon.NewEncoder(toon.WithJsonFallbackEncoder(true))
+		toonEncoderJSONDisabled := toon.NewEncoder(toon.WithJsonFallbackDecoder(true))
+
+		datum := jsonFieldSkippedtest{Name: "value", Other: "other"}
+		doc, err := toon.MarshalString(datum)
+		if err != nil {
+			t.Fatalf("MarshalString: %v", err)
+		}
+		if strings.Contains(doc, "value") {
+			t.Fatal("skipped json field in output")
+		}
+		expectLines(t, doc, "other: other")
+	}
+*/
+func TestJsonField(t *testing.T) {
+	datum := jsonField{Name: "value"}
+
+	t.Run("JSON Enabled", func(t *testing.T) {
+		enc := toon.NewEncoder(toon.WithJsonFallbackEncoder(true))
+		doc, err := enc.MarshalString(datum)
+		if err != nil {
+			t.Fatalf("MarshalString: %v", err)
+		}
+		// Should pass: uses "vastly_different_tag_name" from json tag
+		expectLines(t, doc, "vastly_different_tag_name: value")
+	})
+
+	t.Run("JSON Disabled", func(t *testing.T) {
+		enc := toon.NewEncoder(toon.WithJsonFallbackEncoder(false))
+		doc, err := enc.MarshalString(datum)
+		if err != nil {
+			t.Fatalf("MarshalString: %v", err)
+		}
+
+		dontexpectLines(t, doc, "vastly_different_tag_name: value")
+	})
+}
+
+func TestJsonFieldConflict(t *testing.T) {
+	datum := jsonAndToonField{Name: "value"}
+
+	t.Run("JSON Enabled", func(t *testing.T) {
+		enc := toon.NewEncoder(toon.WithJsonFallbackEncoder(true))
+		doc, err := enc.MarshalString(datum)
+		if err != nil {
+			t.Fatalf("MarshalString: %v", err)
+		}
+
+		expectLines(t, doc, "name: value")
+	})
+
+	t.Run("JSON Disabled", func(t *testing.T) {
+		enc := toon.NewEncoder(toon.WithJsonFallbackEncoder(false))
+		doc, err := enc.MarshalString(datum)
+		if err != nil {
+			t.Fatalf("MarshalString: %v", err)
+		}
+
+		expectLines(t, doc, "name: value")
+	})
+}
+
+func TestJsonSkippedFields(t *testing.T) {
+	datum := jsonFieldSkippedtest{Name: "value", Other: "other"}
+
+	t.Run("JSON Enabled", func(t *testing.T) {
+		enc := toon.NewEncoder(toon.WithJsonFallbackEncoder(true))
+		doc, err := enc.MarshalString(datum)
+		if err != nil {
+			t.Fatalf("MarshalString: %v", err)
+		}
+		if strings.Contains(doc, "value") {
+			t.Fatal("skipped json field in output")
+		}
+		expectLines(t, doc, "other: other")
+	})
+
+	t.Run("JSON Disabled", func(t *testing.T) {
+		enc := toon.NewEncoder(toon.WithJsonFallbackEncoder(false))
+		doc, err := enc.MarshalString(datum)
+		if err != nil {
+			t.Fatalf("MarshalString: %v", err)
+		}
+		// Should fail: "Name" is included because "json:\"-\"" is ignored
+		if !strings.Contains(doc, "Name: value") {
+			t.Fatal("expected Name to be present when JSON fallback is disabled")
+		}
+
+		expectLines(t, doc, "Name: value", "other: other")
+	})
+}

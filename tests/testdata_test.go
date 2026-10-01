@@ -1,5 +1,18 @@
 package toon_test
 
+type jsonFieldSkippedtest struct {
+	Name  string `json:"-"`
+	Other string `json:"-" toon:"other"`
+}
+
+type jsonField struct {
+	Name string `json:"vastly_different_tag_name"`
+}
+
+type jsonAndToonField struct {
+	Name string `json:"vastly_different_tag_name" toon:"name"`
+}
+
 type profile struct {
 	ID     int     `toon:"id"`
 	Name   string  `toon:"name"`
