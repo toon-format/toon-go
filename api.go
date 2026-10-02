@@ -71,29 +71,6 @@ func WithDelimiter(delimiter Delimiter) EncoderOption {
 	return codec.WithDelimiter(delimiter)
 }
 
-// WithDocumentDelimiter configures the document delimiter.
-//
-// Deprecated: the specification defines a single delimiter option. Use
-// WithDelimiter instead.
-func WithDocumentDelimiter(delimiter Delimiter) EncoderOption {
-	return codec.WithDelimiter(delimiter)
-}
-
-// WithArrayDelimiter configures the document delimiter.
-//
-// Deprecated: the specification defines a single delimiter option. Use
-// WithDelimiter instead.
-func WithArrayDelimiter(delimiter Delimiter) EncoderOption {
-	return codec.WithDelimiter(delimiter)
-}
-
-// WithLengthMarkers is a no-op.
-//
-// Deprecated: the [#N] length-marker syntax was removed in TOON 2.0.
-func WithLengthMarkers(enabled bool) EncoderOption {
-	return codec.WithLengthMarkers(enabled)
-}
-
 // WithTimeFormatter specifies the formatter used for time.Time normalization.
 func WithTimeFormatter(formatter func(time.Time) string) EncoderOption {
 	return codec.WithTimeFormatter(formatter)
@@ -127,14 +104,6 @@ func WithStrictMode(strict bool) DecoderOption {
 // WithDecoderIndent configures the expected indentation step.
 func WithDecoderIndent(spaces int) DecoderOption {
 	return codec.WithDecoderIndent(spaces)
-}
-
-// WithDecoderDocumentDelimiter is a no-op.
-//
-// Deprecated: the active delimiter is always declared by the nearest header, so
-// the document delimiter is not a decoder concept.
-func WithDecoderDocumentDelimiter(delimiter Delimiter) DecoderOption {
-	return codec.WithDecoderDocumentDelimiter(delimiter)
 }
 
 // Unmarshal decodes the TOON document in data into v, which must be a non-nil

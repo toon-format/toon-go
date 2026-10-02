@@ -91,30 +91,6 @@ func WithDelimiter(delimiter Delimiter) EncoderOption {
 	}
 }
 
-// WithDocumentDelimiter configures the document delimiter.
-//
-// Deprecated: the specification defines a single delimiter option. Use
-// WithDelimiter instead; this alias sets the same value.
-func WithDocumentDelimiter(delimiter Delimiter) EncoderOption {
-	return WithDelimiter(delimiter)
-}
-
-// WithArrayDelimiter configures the document delimiter.
-//
-// Deprecated: the specification defines a single delimiter option. Use
-// WithDelimiter instead; this alias sets the same value.
-func WithArrayDelimiter(delimiter Delimiter) EncoderOption {
-	return WithDelimiter(delimiter)
-}
-
-// WithLengthMarkers is a no-op.
-//
-// Deprecated: the [#N] length-marker syntax was removed in TOON 2.0. Encoders
-// MUST NOT emit it and decoders MUST reject it.
-func WithLengthMarkers(bool) EncoderOption {
-	return func(*encoderOptions) {}
-}
-
 // WithTimeFormatter specifies the formatter used for time.Time normalization.
 func WithTimeFormatter(formatter func(time.Time) string) EncoderOption {
 	return func(o *encoderOptions) {
@@ -153,12 +129,4 @@ func WithDecoderIndent(spaces int) DecoderOption {
 			o.indentSize = spaces
 		}
 	}
-}
-
-// WithDecoderDocumentDelimiter is a no-op.
-//
-// Deprecated: the active delimiter is always declared by the nearest header
-// (§11.2), so the document delimiter is not a decoder concept.
-func WithDecoderDocumentDelimiter(Delimiter) DecoderOption {
-	return func(*decoderOptions) {}
 }
