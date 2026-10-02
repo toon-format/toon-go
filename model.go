@@ -1,4 +1,4 @@
-package codec
+package toon
 
 // normalizedValue represents a value that has been normalized according to the
 // TOON data model and is ready for emission by the encoder.
