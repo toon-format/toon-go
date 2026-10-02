@@ -79,19 +79,33 @@ func (s *encodeState) indent(depth int) string {
 	return strings.Repeat(" ", depth*s.cfg.indentSize)
 }
 
-func (s *encodeState) ctx() formatContext {
-	return formatContext{delimiter: s.cfg.delimiter}
-}
-
 func (s *encodeState) delim() string {
 	return string(s.cfg.delimiter.rune())
+}
+
+func (s *encodeState) formatPrimitive(value normalizedValue) (string, error) {
+	switch v := value.(type) {
+	case nil:
+		return "null", nil
+	case bool:
+		if v {
+			return "true", nil
+		}
+		return "false", nil
+	case string:
+		return formatpkg.FormatString(v, formatpkg.Context{Delimiter: s.cfg.delimiter.rune()})
+	case numberValue:
+		return v.literal, nil
+	default:
+		return "", fmt.Errorf("toon: unsupported primitive %T", value)
+	}
 }
 
 // encodeRoot renders the document root per §5.
 func (s *encodeState) encodeRoot(value normalizedValue) error {
 	switch val := value.(type) {
 	case nil, bool, string, numberValue:
-		token, err := formatPrimitive(val, s.ctx())
+		token, err := s.formatPrimitive(val)
 		if err != nil {
 			return err
 		}
@@ -136,7 +150,7 @@ func (s *encodeState) encodeObjectBody(obj Object, depth int) error {
 // encodeObjectField renders one object field, whose opening line stands at
 // depth and whose nested content, if any, stands at depth+1.
 func (s *encodeState) encodeObjectField(field Field, depth int) error {
-	keyLit, err := encodeKey(field.Key)
+	keyLit, err := formatpkg.EncodeKey(field.Key)
 	if err != nil {
 		return err
 	}
@@ -144,7 +158,7 @@ func (s *encodeState) encodeObjectField(field Field, depth int) error {
 
 	switch val := field.Value.(type) {
 	case nil, bool, string, numberValue:
-		token, err := formatPrimitive(val, s.ctx())
+		token, err := s.formatPrimitive(val)
 		if err != nil {
 			return err
 		}
@@ -183,7 +197,7 @@ func (s *encodeState) encodeArray(keyLit string, values []normalizedValue, depth
 		}
 		cells := make([]string, 0, len(values))
 		for _, v := range values {
-			token, err := formatPrimitive(v, s.ctx())
+			token, err := s.formatPrimitive(v)
 			if err != nil {
 				return err
 			}
@@ -242,7 +256,7 @@ func (s *encodeState) encodeKeyedTabular(keyLit string, obj Object, nodes []fiel
 	s.emit(s.indent(depth) + header)
 	rowIndent := s.indent(depth + 1)
 	for _, field := range obj.Fields {
-		entryKey, err := encodeKey(field.Key)
+		entryKey, err := formatpkg.EncodeKey(field.Key)
 		if err != nil {
 			return err
 		}
@@ -265,7 +279,7 @@ func (s *encodeState) encodeListItem(item normalizedValue, depth int) error {
 
 	switch val := item.(type) {
 	case nil, bool, string, numberValue:
-		token, err := formatPrimitive(val, s.ctx())
+		token, err := s.formatPrimitive(val)
 		if err != nil {
 			return err
 		}
@@ -285,7 +299,7 @@ func (s *encodeState) encodeListItem(item normalizedValue, depth int) error {
 		if allPrimitive(val) {
 			cells := make([]string, 0, len(val))
 			for _, v := range val {
-				token, err := formatPrimitive(v, s.ctx())
+				token, err := s.formatPrimitive(v)
 				if err != nil {
 					return err
 				}
@@ -340,7 +354,7 @@ func (s *encodeState) rowCells(obj Object, nodes []fieldNode) ([]string, error) 
 			return nil, fmt.Errorf("toon: row is missing field %q", node.name)
 		}
 		if node.children == nil {
-			token, err := formatPrimitive(value, s.ctx())
+			token, err := s.formatPrimitive(value)
 			if err != nil {
 				return nil, err
 			}
@@ -385,7 +399,7 @@ func (s *encodeState) renderHeader(keyLit string, length int, keyed bool, nodes 
 func (s *encodeState) renderFieldList(nodes []fieldNode) (string, error) {
 	parts := make([]string, 0, len(nodes))
 	for _, node := range nodes {
-		name, err := encodeKey(node.name)
+		name, err := formatpkg.EncodeKey(node.name)
 		if err != nil {
 			return "", err
 		}
