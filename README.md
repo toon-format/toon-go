@@ -1,175 +1,90 @@
-# TOON Format for Go
+# TOON for Go
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/toon-format/toon-go.svg)](https://pkg.go.dev/github.com/toon-format/toon-go)
-[![Go Report Card](https://goreportcard.com/badge/github.com/toon-format/toon-go)](https://goreportcard.com/report/github.com/toon-format/toon-go)
+[![SPEC v1.4](https://img.shields.io/badge/spec-v1.4-lightgrey)](https://github.com/toon-format/spec/blob/v1.4.0/SPEC.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-**Token-Oriented Object Notation** is a compact, human-readable format designed for passing structured data to Large Language Models with significantly reduced token usage.
+Encodes Go values to [TOON (Token-Oriented Object Notation)](https://github.com/toon-format/toon) and decodes TOON back. TOON is a compact, indentation-based encoding of the JSON data model for LLM input.
 
-`toon-spec: 4.1` — this implementation targets specification v4.1 and passes the full conformance fixture suite of [toon-format/spec](https://github.com/toon-format/spec) v4.1.1.
+## Installation
 
-## Example
-
-**JSON** (verbose):
-```json
-{
-  "users": [
-    { "id": 1, "name": "Alice", "role": "admin" },
-    { "id": 2, "name": "Bob", "role": "user" }
-  ]
-}
-```
-
-**TOON** (compact):
-```
-users[2]{id,name,role}:
-  1,Alice,admin
-  2,Bob,user
-```
-
-## Specification Coverage
-
-| Feature | Section | Status |
-| --- | --- | --- |
-| Inline primitive arrays, list form, tabular form | §9.1–§9.4 | supported |
-| Nested field groups: `orders[2]{id,customer{name,country},total}:` | §6, §9.3 | supported |
-| Keyed tabular form: `users[2:]{age,city}:` with one entry row per key | §6, §9.5 | supported |
-| Comment lines removed in a lexical pre-pass | §5.1 | supported |
-| Canonical number form, decoder number grammar | §2, §4 | supported |
-| Explicit empty arrays `key: []` / `[]` (legacy `key[0]:` accepted) | §9.1 | supported |
-| Byte-order mark removal, CRLF input, trailing-space stripping | §12 | supported |
-| Strict-mode diagnostics, duplicate-key last-write-wins | §14 | supported |
-| Comma, tab, and pipe delimiters | §11 | supported |
-
-Two features are deliberately absent because the specification removed them:
-
-- `[#N]` length markers were removed in spec 2.0. `WithLengthMarkers` is retained as a deprecated no-op and the decoder rejects `[#N]`.
-- Key folding and path expansion (`keyFolding`, `flattenDepth`, `expandPaths`) were removed in spec 4.0. Dotted keys are single literal keys. Flattening nested objects is now expressed by nested field groups in tabular and keyed tabular headers (§9.3, §9.5), shown below.
-
-### Implementation-defined behavior
-
-The specification requires these choices to be documented:
-
-- **Key order.** Decoded objects are `map[string]any`, which does not retain insertion order, so document key order is not preserved on decode (§2). Encoding preserves the encounter order of `toon.Object` fields; Go maps are encoded in sorted key order.
-- **Numeric domain.** Numbers decode to `float64`. A token that overflows `float64` (e.g. `1e999`) decodes as a string; any other token decodes to its nearest `float64`, so integers beyond 2^53 lose precision. On encode, integers beyond IEEE 754 exact range are emitted as quoted plain-decimal strings (§2).
-- **Tabs in indentation.** Rejected in strict mode. In non-strict mode each leading tab counts as one indentation level (§12).
-
-## Nested Objects in Tabular Form
-
-An array of uniform objects whose columns are themselves uniform objects declares
-nested field groups once in the header; the rows stay flat:
-
-```go
-doc, _ := toon.MarshalString(payload)
-```
-
-```
-orders[2]{id,customer{name,country},total}:
-  1,Ada,UK,9.5
-  2,Bob,ES,14
-```
-
-An object whose values are uniform objects collapses into keyed tabular form,
-where each entry carries its own key:
-
-```
-users[2:]{age,city}:
-  alice: 30,Madrid
-  bob: 41,Lisboa
+```bash
+go get github.com/toon-format/toon-go
 ```
 
 ## Usage
 
-### Marshal and Unmarshal
-
 ```go
 package main
 
 import (
-    "fmt"
+	"fmt"
 
-    "github.com/toon-format/toon-go"
+	"github.com/toon-format/toon-go"
 )
 
 type User struct {
-    ID    int    `toon:"id"`
-    Name  string `toon:"name"`
-    Role  string `toon:"role"`
+	ID   int    `toon:"id"`
+	Name string `toon:"name"`
+	Role string `toon:"role"`
 }
 
 type Payload struct {
-    Users []User `toon:"users"`
+	Users []User `toon:"users"`
 }
 
 func main() {
-    in := Payload{
-        Users: []User{
-            {ID: 1, Name: "Alice", Role: "admin"},
-            {ID: 2, Name: "Bob", Role: "user"},
-        },
-    }
+	in := Payload{Users: []User{{1, "Ada", "admin"}, {2, "Bob", "user"}}}
 
-    encoded, err := toon.Marshal(in)
-    if err != nil {
-        panic(err)
-    }
-    fmt.Println(string(encoded))
+	encoded, err := toon.MarshalString(in)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(encoded)
+	// users[2]{id,name,role}:
+	//   1,Ada,admin
+	//   2,Bob,user
 
-    var out Payload
-    if err := toon.Unmarshal(encoded, &out); err != nil {
-        panic(err)
-    }
-    fmt.Printf("first user: %+v\n", out.Users[0])
+	var out Payload
+	if err := toon.UnmarshalString(encoded, &out); err != nil {
+		panic(err)
+	}
+	fmt.Printf("%+v\n", out)
+	// {Users:[{ID:1 Name:Ada Role:admin} {ID:2 Name:Bob Role:user}]}
 }
 ```
 
-### Unmarshal into Maps
+Without a destination type, `Decode` and `DecodeString` return `map[string]any`, `[]any`, and primitives. Pass encoder options to `Marshal` and decoder options to `Unmarshal` or `Decode`:
 
-`Unmarshal` can populate dynamic maps, mimicking the `encoding/json` package:
+| Option | Default | Description |
+| ------ | ------- | ----------- |
+| `WithIndent(n)` | `2` | Spaces per indentation level when encoding |
+| `WithArrayDelimiter(d)` | `DelimiterComma` | Delimiter declared in array headers: `DelimiterComma`, `DelimiterTab`, or `DelimiterPipe` |
+| `WithDocumentDelimiter(d)` | `DelimiterComma` | Delimiter that drives quoting outside array scopes |
+| `WithTimeFormatter(f)` | RFC 3339 in UTC | Formats `time.Time` values |
+| `WithStrictMode(b)` | `true` | Enforces the strict-mode decoding errors |
+| `WithDecoderIndent(n)` | `2` | Expected spaces per indentation level when decoding |
+| `WithDecoderDocumentDelimiter(d)` | `DelimiterComma` | Delimiter for parsing values outside array scopes |
 
-```go
-var doc map[string]any
-if err := toon.Unmarshal(encoded, &doc); err != nil {
-    panic(err)
-}
-fmt.Printf("users: %#v\n", doc["users"])
-```
+## Specification
 
-### Decode Without Structs
+Targets [TOON spec v1.4](https://github.com/toon-format/spec/blob/v1.4.0/SPEC.md), and the test suite runs that version's conformance fixtures.
 
-If you do not have a destination struct, use `Decode` for a dynamic representation:
-
-```go
-package main
-
-import (
-    "fmt"
-    "github.com/toon-format/toon-go"
-)
-
-func main() {
-    raw := []byte("users[2]{id,name,role}:\n  1,Alice,admin\n  2,Bob,user\n")
-    decoded, err := toon.Decode(raw)
-    if err != nil {
-        panic(err)
-    }
-    fmt.Printf("%+v\n", decoded)
-}
-```
-
-For more runnable samples, explore the programs in `./examples`.
+- **Numbers decode to `float64`** – integers beyond 2^53 lose precision and a token that overflows `float64` (e.g. `1e999`) is a decode error; on encode, integers beyond ±(2^53 − 1) and `*big.Int` values become quoted decimal strings ([§4](https://github.com/toon-format/spec/blob/v1.4.0/SPEC.md#4-decoding-interpretation-reference-decoder))
+- **Structs encode as objects keyed by their `toon` tags** – `toon:"name"` renames, `toon:"name,omitempty"` skips zero values, `toon:"-"` skips the field, and untagged fields use the Go field name; maps need string keys, `time.Time` and `fmt.Stringer` values become strings, and `NaN` and `±Inf` become `null` ([§3](https://github.com/toon-format/spec/blob/v1.4.0/SPEC.md#3-encoding-normalization-reference-encoder))
+- **Decoded objects are `map[string]any`, so document key order is lost** – on encode, `toon.Object` keeps its field order and Go maps are written in sorted key order ([§2](https://github.com/toon-format/spec/blob/v1.4.0/SPEC.md#2-data-model))
 
 ## Resources
 
-- [TOON Specification](https://github.com/toon-format/spec/blob/main/SPEC.md)
-- [Main Repository](https://github.com/toon-format/toon)
-- [Benchmarks & Performance](https://github.com/toon-format/toon#benchmarks)
-- [Other Language Implementations](https://github.com/toon-format/toon#other-implementations)
+- **Specification:** [SPEC.md](https://github.com/toon-format/spec/blob/main/SPEC.md) – Normative rules and conformance checklists
+- **Format Overview:** [toonformat.dev](https://toonformat.dev/guide/format-overview) – Every form with examples
+- **Other Implementations:** [toonformat.dev](https://toonformat.dev/ecosystem/implementations) – TOON in other languages
+- **API Reference:** [pkg.go.dev](https://pkg.go.dev/github.com/toon-format/toon-go) – Every exported function and option
 
 ## Contributing
 
-Interested in implementing TOON for Go? Check out the [specification](https://github.com/toon-format/spec/blob/main/SPEC.md) and feel free to contribute!
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the development setup and pull request guidelines.
 
 ## License
 
-MIT License © 2025-PRESENT [Johann Schopplich](https://github.com/johannschopplich)
+[MIT](./LICENSE) License © 2025-PRESENT [Bintang Pradana Erlangga Putra](https://github.com/bpradana) and [Johann Schopplich](https://github.com/johannschopplich)
