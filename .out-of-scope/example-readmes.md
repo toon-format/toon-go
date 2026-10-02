@@ -1,6 +1,6 @@
-# READMEs in `examples/`
+# Example Programs with READMEs
 
-The programs in `examples/` don't get README files with descriptions, run commands, and expected output.
+Example programs with README files – descriptions, run commands, and expected output – are out of scope.
 
 ## Why this is out of scope
 
