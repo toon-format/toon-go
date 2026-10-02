@@ -81,7 +81,7 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 	case reflect.Slice, reflect.Array:
 		length := val.Len()
 		result := make([]normalizedValue, 0, length)
-		for i := 0; i < length; i++ {
+		for i := range length {
 			item, err := normalize(val.Index(i).Interface(), cfg)
 			if err != nil {
 				return nil, err

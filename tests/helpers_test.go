@@ -1,6 +1,7 @@
 package toon_test
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -23,12 +24,7 @@ func expectLines(t *testing.T, doc string, want ...string) {
 }
 
 func containsLine(lines []string, target string) bool {
-	for _, line := range lines {
-		if line == target {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(lines, target)
 }
 
 func decodeMap(t *testing.T, doc string, opts ...toon.DecoderOption) map[string]any {

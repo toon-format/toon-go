@@ -35,14 +35,12 @@ func TestSpecEncodeFixtures(t *testing.T) {
 	t.Helper()
 	root := filepath.Join("spec", "tests", "fixtures", "encode")
 	for _, path := range listFixtureFiles(t, root) {
-		path := path
 		fixture := loadFixtureFile(t, path)
 		if fixture.Category != "encode" {
 			t.Fatalf("%s: unexpected category %q", filepath.Base(path), fixture.Category)
 		}
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			for _, tc := range fixture.Tests {
-				tc := tc
 				t.Run(tc.Name, func(t *testing.T) {
 					input := decodeEncodeInput(t, tc.Input)
 					opts := encoderOptionsFromFixture(t, tc.Options)
@@ -70,14 +68,12 @@ func TestSpecDecodeFixtures(t *testing.T) {
 	t.Helper()
 	root := filepath.Join("spec", "tests", "fixtures", "decode")
 	for _, path := range listFixtureFiles(t, root) {
-		path := path
 		fixture := loadFixtureFile(t, path)
 		if fixture.Category != "decode" {
 			t.Fatalf("%s: unexpected category %q", filepath.Base(path), fixture.Category)
 		}
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			for _, tc := range fixture.Tests {
-				tc := tc
 				t.Run(tc.Name, func(t *testing.T) {
 					input := decodeFixtureString(t, tc.Input)
 					opts := decoderOptionsFromFixture(t, tc.Options)

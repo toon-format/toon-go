@@ -887,11 +887,11 @@ func parseHeaderSyntax(content string, strict bool) (header, headerStatus) {
 	}
 
 	rest := content[bracket+1:]
-	close := strings.IndexByte(rest, ']')
-	if close < 0 {
+	segment, after, found := strings.Cut(rest, "]")
+	if !found {
 		return header{}, headerMalformed
 	}
-	length, keyed, delimiter, ok := parseBracketSegment(rest[:close])
+	length, keyed, delimiter, ok := parseBracketSegment(segment)
 	if !ok {
 		return header{}, headerMalformed
 	}
@@ -899,7 +899,6 @@ func parseHeaderSyntax(content string, strict bool) (header, headerStatus) {
 	hdr.keyed = keyed
 	hdr.delimiter = delimiter
 
-	after := rest[close+1:]
 	if strings.HasPrefix(after, "{") {
 		end := matchBrace(after)
 		if end < 0 {
