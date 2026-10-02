@@ -1,7 +1,7 @@
 # TOON for Go
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/toon-format/toon-go.svg)](https://pkg.go.dev/github.com/toon-format/toon-go)
-[![SPEC v1.4](https://img.shields.io/badge/spec-v1.4-lightgrey)](https://github.com/toon-format/spec/blob/v1.4.0/SPEC.md)
+[![SPEC v4.1](https://img.shields.io/badge/spec-v4.1-lightgrey)](https://github.com/toon-format/spec/blob/v4.1.2/SPEC.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 Encodes Go values to [TOON (Token-Oriented Object Notation)](https://github.com/toon-format/toon) and decodes TOON back. TOON is a compact, indentation-based encoding of the JSON data model for LLM input.
@@ -59,20 +59,19 @@ Without a destination type, `Decode` and `DecodeString` return `map[string]any`,
 | Option | Default | Description |
 | ------ | ------- | ----------- |
 | `WithIndent(n)` | `2` | Spaces per indentation level when encoding |
-| `WithArrayDelimiter(d)` | `DelimiterComma` | Delimiter declared in array headers: `DelimiterComma`, `DelimiterTab`, or `DelimiterPipe` |
-| `WithDocumentDelimiter(d)` | `DelimiterComma` | Delimiter that drives quoting outside array scopes |
+| `WithDelimiter(d)` | `DelimiterComma` | Delimiter for array values and tabular rows: `DelimiterComma`, `DelimiterTab`, or `DelimiterPipe` |
 | `WithTimeFormatter(f)` | RFC 3339 in UTC | Formats `time.Time` values |
 | `WithStrictMode(b)` | `true` | Enforces the strict-mode decoding errors |
 | `WithDecoderIndent(n)` | `2` | Expected spaces per indentation level when decoding |
-| `WithDecoderDocumentDelimiter(d)` | `DelimiterComma` | Delimiter for parsing values outside array scopes |
 
 ## Specification
 
-Targets [TOON spec v1.4](https://github.com/toon-format/spec/blob/v1.4.0/SPEC.md), and the test suite runs that version's conformance fixtures.
+Targets [TOON spec v4.1](https://github.com/toon-format/spec/blob/v4.1.2/SPEC.md), and the test suite runs that version's conformance fixtures.
 
-- **Numbers decode to `float64`** – integers beyond 2^53 lose precision and a token that overflows `float64` (e.g. `1e999`) is a decode error; on encode, integers beyond ±(2^53 − 1) and `*big.Int` values become quoted decimal strings ([§4](https://github.com/toon-format/spec/blob/v1.4.0/SPEC.md#4-decoding-interpretation-reference-decoder))
-- **Structs encode as objects keyed by their `toon` tags** – `toon:"name"` renames, `toon:"name,omitempty"` skips zero values, `toon:"-"` skips the field, and untagged fields use the Go field name; maps need string keys, `time.Time` and `fmt.Stringer` values become strings, and `NaN` and `±Inf` become `null` ([§3](https://github.com/toon-format/spec/blob/v1.4.0/SPEC.md#3-encoding-normalization-reference-encoder))
-- **Decoded objects are `map[string]any`, so document key order is lost** – on encode, `toon.Object` keeps its field order and Go maps are written in sorted key order ([§2](https://github.com/toon-format/spec/blob/v1.4.0/SPEC.md#2-data-model))
+- **Numbers decode to `float64`** – integers beyond 2^53 lose precision and a token that overflows `float64` (e.g. `1e999`) decodes as a string; on encode, integers beyond ±(2^53 − 1) and `*big.Int` values become quoted decimal strings ([§4](https://github.com/toon-format/spec/blob/v4.1.2/SPEC.md#4-decoding-interpretation-reference-decoder))
+- **Structs encode as objects keyed by their `toon` tags** – `toon:"name"` renames, `toon:"name,omitempty"` skips zero values, `toon:"-"` skips the field, and untagged fields use the Go field name; maps need string keys, `time.Time` and `fmt.Stringer` values become strings, and `NaN` and `±Inf` become `null` ([§3](https://github.com/toon-format/spec/blob/v4.1.2/SPEC.md#3-encoding-normalization-reference-encoder))
+- **Decoded objects are `map[string]any`, so document key order is lost** – on encode, `toon.Object` keeps its field order and Go maps are written in sorted key order ([§2](https://github.com/toon-format/spec/blob/v4.1.2/SPEC.md#2-data-model))
+- **Tabs in indentation are a strict-mode error** – in non-strict mode each leading tab counts as one indentation level ([§12](https://github.com/toon-format/spec/blob/v4.1.2/SPEC.md#12-indentation-and-whitespace))
 
 ## Resources
 
