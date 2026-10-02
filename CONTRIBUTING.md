@@ -12,7 +12,7 @@ go test ./...
 
 ## Pull Requests
 
-Add tests for every behavior change and use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages. Changes to the format itself belong in [toon-format/spec](https://github.com/toon-format/spec).
+Spec behavior is tested through the spec fixtures – a missing case goes to [toon-format/spec](https://github.com/toon-format/spec) as a fixture, and so do changes to the format itself. Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
 
 ## Maintainers
 
