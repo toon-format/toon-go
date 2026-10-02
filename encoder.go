@@ -8,7 +8,7 @@ import (
 	formatpkg "github.com/toon-format/toon-go/internal/format"
 )
 
-// Encoder serializes Go values as TOON documents targeting specification v4.1.
+// Encoder serializes Go values as TOON documents.
 type Encoder struct {
 	cfg encoderOptions
 }
