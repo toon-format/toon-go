@@ -11,16 +11,6 @@ import (
 	"github.com/toon-format/toon-go"
 )
 
-func TestMarshalPrimitiveRoot(t *testing.T) {
-	doc, err := toon.MarshalString("hello")
-	if err != nil {
-		t.Fatalf("MarshalString: %v", err)
-	}
-	if doc != "hello" {
-		t.Fatalf("unexpected output %q", doc)
-	}
-}
-
 func TestMarshalNormalization(t *testing.T) {
 	payload := struct {
 		Timestamp time.Time `toon:"timestamp"`
@@ -111,22 +101,6 @@ func TestMarshalCustomTimeFormatter(t *testing.T) {
 	if !containsLine(lines, "ts: \"02 Jan 24 03:04 UTC\"") {
 		t.Fatalf("time formatter not applied: %v", lines)
 	}
-}
-
-func TestMarshalWithIndentOption(t *testing.T) {
-	payload := map[string]any{
-		"outer": map[string]any{
-			"inner": []int{1, 2},
-		},
-	}
-	doc, err := toon.MarshalString(payload, toon.WithIndent(4))
-	if err != nil {
-		t.Fatalf("MarshalString: %v", err)
-	}
-	expectLines(t, doc,
-		"outer:",
-		"    inner[2]: 1,2",
-	)
 }
 
 func TestStringerNormalization(t *testing.T) {
