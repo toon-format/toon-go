@@ -1,5 +1,5 @@
 // Package toon implements the Token-Oriented Object Notation (TOON)
-// encoder and decoder described in docs/SPEC.md. TOON is a compact,
+// encoder and decoder described by the TOON specification v4.1. TOON is a compact,
 // human-readable serialization format targeting LLM workflows where predictable
 // structure and reduced token counts are important. The package exposes a small
 // public API while keeping implementation details inside internal packages.
@@ -65,19 +65,31 @@ func WithIndent(spaces int) EncoderOption {
 	return codec.WithIndent(spaces)
 }
 
-// WithDocumentDelimiter configures the delimiter that influences quoting
-// decisions outside array scopes.
+// WithDelimiter configures the document delimiter. Conforming encoders declare
+// it as the active delimiter of every header they emit.
+func WithDelimiter(delimiter Delimiter) EncoderOption {
+	return codec.WithDelimiter(delimiter)
+}
+
+// WithDocumentDelimiter configures the document delimiter.
+//
+// Deprecated: the specification defines a single delimiter option. Use
+// WithDelimiter instead.
 func WithDocumentDelimiter(delimiter Delimiter) EncoderOption {
-	return codec.WithDocumentDelimiter(delimiter)
+	return codec.WithDelimiter(delimiter)
 }
 
-// WithArrayDelimiter configures the default delimiter declared for arrays that
-// do not explicitly override the active delimiter.
+// WithArrayDelimiter configures the document delimiter.
+//
+// Deprecated: the specification defines a single delimiter option. Use
+// WithDelimiter instead.
 func WithArrayDelimiter(delimiter Delimiter) EncoderOption {
-	return codec.WithArrayDelimiter(delimiter)
+	return codec.WithDelimiter(delimiter)
 }
 
-// WithLengthMarkers enables emitting optional # markers in array headers.
+// WithLengthMarkers is a no-op.
+//
+// Deprecated: the [#N] length-marker syntax was removed in TOON 2.0.
 func WithLengthMarkers(enabled bool) EncoderOption {
 	return codec.WithLengthMarkers(enabled)
 }
@@ -117,8 +129,10 @@ func WithDecoderIndent(spaces int) DecoderOption {
 	return codec.WithDecoderIndent(spaces)
 }
 
-// WithDecoderDocumentDelimiter configures the delimiter that influences
-// delimiter-aware string parsing when no array header is active.
+// WithDecoderDocumentDelimiter is a no-op.
+//
+// Deprecated: the active delimiter is always declared by the nearest header, so
+// the document delimiter is not a decoder concept.
 func WithDecoderDocumentDelimiter(delimiter Delimiter) DecoderOption {
 	return codec.WithDecoderDocumentDelimiter(delimiter)
 }

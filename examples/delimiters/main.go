@@ -24,11 +24,7 @@ func main() {
 		},
 	}
 
-	encoded, err := toon.MarshalString(
-		payload,
-		toon.WithDocumentDelimiter(toon.DelimiterPipe),
-		toon.WithArrayDelimiter(toon.DelimiterPipe),
-	)
+	encoded, err := toon.MarshalString(payload, toon.WithDelimiter(toon.DelimiterPipe))
 	if err != nil {
 		panic(err)
 	}

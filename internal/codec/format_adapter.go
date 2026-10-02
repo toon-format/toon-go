@@ -6,18 +6,13 @@ import (
 	formatpkg "github.com/toon-format/toon-go/internal/format"
 )
 
+// formatContext carries the delimiter that governs delimiter-aware quoting.
 type formatContext struct {
-	active   Delimiter
-	document Delimiter
-	inArray  bool
+	delimiter Delimiter
 }
 
 func (c formatContext) toInternal() formatpkg.Context {
-	return formatpkg.Context{
-		Active:   c.active.rune(),
-		Document: c.document.rune(),
-		InArray:  c.inArray,
-	}
+	return formatpkg.Context{Delimiter: c.delimiter.rune()}
 }
 
 func formatPrimitive(value normalizedValue, ctx formatContext) (string, error) {

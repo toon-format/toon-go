@@ -53,23 +53,19 @@ func TestMarshalMixedArray(t *testing.T) {
 	)
 }
 
-func TestMarshalDelimitersAndLengthMarkers(t *testing.T) {
+func TestMarshalPipeDelimiter(t *testing.T) {
 	payload := usersPayload{
 		Users: []profile{{ID: 1, Name: "Ada", Active: true}},
 		Count: 1,
 	}
 
-	doc, err := toon.MarshalString(payload,
-		toon.WithDocumentDelimiter(toon.DelimiterPipe),
-		toon.WithArrayDelimiter(toon.DelimiterPipe),
-		toon.WithLengthMarkers(true),
-	)
+	doc, err := toon.MarshalString(payload, toon.WithDelimiter(toon.DelimiterPipe))
 	if err != nil {
 		t.Fatalf("MarshalString: %v", err)
 	}
 
 	expectLines(t, doc,
-		"users[#1|]{id|name|active}:",
+		"users[1|]{id|name|active}:",
 		"  1|Ada|true",
 		"count: 1",
 	)
@@ -91,7 +87,7 @@ func TestNestedDelimiterScopes(t *testing.T) {
 		},
 	}
 
-	doc, err := toon.MarshalString(payload, toon.WithArrayDelimiter(toon.DelimiterPipe))
+	doc, err := toon.MarshalString(payload, toon.WithDelimiter(toon.DelimiterPipe))
 	if err != nil {
 		t.Fatalf("MarshalString: %v", err)
 	}

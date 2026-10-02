@@ -9,6 +9,8 @@ import (
 	"slices"
 	"strconv"
 	"time"
+
+	formatpkg "github.com/toon-format/toon-go/internal/format"
 )
 
 // normalize applies the data-model rules from Section 2 and Section 3 to a Go
@@ -165,8 +167,7 @@ func normalizeFloat(f float64) (normalizedValue, error) {
 		if f == math.Copysign(0, -1) {
 			f = 0
 		}
-		s := strconv.FormatFloat(f, 'f', -1, 64)
-		return numberValue{literal: s}, nil
+		return numberValue{literal: formatpkg.FormatNumber(f)}, nil
 	}
 }
 
@@ -179,8 +180,5 @@ func normalizeNumberString(s string) (normalizedValue, error) {
 	if math.IsInf(f, 0) || math.IsNaN(f) {
 		return nil, nil
 	}
-	if f == 0 {
-		f = 0
-	}
-	return numberValue{literal: strconv.FormatFloat(f, 'f', -1, 64)}, nil
+	return numberValue{literal: formatpkg.FormatNumber(f)}, nil
 }

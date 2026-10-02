@@ -8,10 +8,7 @@ import (
 )
 
 func TestEncoderReusability(t *testing.T) {
-	enc := toon.NewEncoder(
-		toon.WithArrayDelimiter(toon.DelimiterPipe),
-		toon.WithLengthMarkers(true),
-	)
+	enc := toon.NewEncoder(toon.WithDelimiter(toon.DelimiterPipe))
 
 	first, err := enc.MarshalString(usersPayload{
 		Users: []profile{{ID: 1, Name: "Ada", Active: true}},
@@ -35,10 +32,7 @@ func TestEncoderReusability(t *testing.T) {
 
 func TestDecoderOptionsCombination(t *testing.T) {
 	doc := "items[2|]: 1|2|3"
-	dec := toon.NewDecoder(
-		toon.WithStrictMode(false),
-		toon.WithDecoderDocumentDelimiter(toon.DelimiterPipe),
-	)
+	dec := toon.NewDecoder(toon.WithStrictMode(false))
 	if _, err := dec.DecodeString(doc); err != nil {
 		t.Fatalf("DecodeString: %v", err)
 	}
