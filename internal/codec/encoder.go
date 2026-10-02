@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	formatpkg "github.com/toon-format/toon-go/internal/format"
 )
 
 // Encoder serializes Go values as TOON documents targeting specification v4.1.
@@ -92,6 +94,13 @@ func (s *encodeState) encodeRoot(value normalizedValue) error {
 		token, err := formatPrimitive(val, s.ctx())
 		if err != nil {
 			return err
+		}
+		// Unquoted, a decoder would remove a leading U+FEFF as a byte-order
+		// mark (§7.2, §12).
+		if strings.HasPrefix(token, "\uFEFF") {
+			if token, err = formatpkg.QuoteString(val.(string)); err != nil {
+				return err
+			}
 		}
 		s.emit(token)
 		return nil
