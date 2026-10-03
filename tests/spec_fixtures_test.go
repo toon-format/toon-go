@@ -8,17 +8,14 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"sort"
 	"testing"
 
 	"github.com/toon-format/toon-go"
 )
 
 type fixtureFile struct {
-	Version     string        `json:"version"`
-	Category    string        `json:"category"`
-	Description string        `json:"description"`
-	Tests       []fixtureCase `json:"tests"`
+	Category string        `json:"category"`
+	Tests    []fixtureCase `json:"tests"`
 }
 
 type fixtureCase struct {
@@ -27,22 +24,16 @@ type fixtureCase struct {
 	Expected    json.RawMessage `json:"expected"`
 	Options     map[string]any  `json:"options"`
 	ShouldError bool            `json:"shouldError"`
-	SpecSection string          `json:"specSection"`
-	Note        string          `json:"note"`
 }
 
 func TestSpecEncodeFixtures(t *testing.T) {
-	t.Helper()
-	root := filepath.Join("spec", "tests", "fixtures", "encode")
-	for _, path := range listFixtureFiles(t, root) {
-		path := path
+	for _, path := range fixturePaths(t, "encode") {
 		fixture := loadFixtureFile(t, path)
 		if fixture.Category != "encode" {
 			t.Fatalf("%s: unexpected category %q", filepath.Base(path), fixture.Category)
 		}
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			for _, tc := range fixture.Tests {
-				tc := tc
 				t.Run(tc.Name, func(t *testing.T) {
 					input := decodeEncodeInput(t, tc.Input)
 					opts := encoderOptionsFromFixture(t, tc.Options)
@@ -67,17 +58,13 @@ func TestSpecEncodeFixtures(t *testing.T) {
 }
 
 func TestSpecDecodeFixtures(t *testing.T) {
-	t.Helper()
-	root := filepath.Join("spec", "tests", "fixtures", "decode")
-	for _, path := range listFixtureFiles(t, root) {
-		path := path
+	for _, path := range fixturePaths(t, "decode") {
 		fixture := loadFixtureFile(t, path)
 		if fixture.Category != "decode" {
 			t.Fatalf("%s: unexpected category %q", filepath.Base(path), fixture.Category)
 		}
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			for _, tc := range fixture.Tests {
-				tc := tc
 				t.Run(tc.Name, func(t *testing.T) {
 					input := decodeFixtureString(t, tc.Input)
 					opts := decoderOptionsFromFixture(t, tc.Options)
@@ -101,23 +88,12 @@ func TestSpecDecodeFixtures(t *testing.T) {
 	}
 }
 
-func listFixtureFiles(t *testing.T, dir string) []string {
+func fixturePaths(t *testing.T, category string) []string {
 	t.Helper()
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		t.Fatalf("ReadDir %s: %v", dir, err)
+	paths, _ := filepath.Glob(filepath.Join("spec", "tests", "fixtures", category, "*.json"))
+	if len(paths) == 0 {
+		t.Fatalf("no %s fixtures found – is the tests/spec submodule checked out?", category)
 	}
-	paths := make([]string, 0, len(entries))
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		if filepath.Ext(entry.Name()) != ".json" {
-			continue
-		}
-		paths = append(paths, filepath.Join(dir, entry.Name()))
-	}
-	sort.Strings(paths)
 	return paths
 }
 
@@ -269,15 +245,6 @@ func asPositiveInt(t *testing.T, value any, name string) int {
 			t.Fatalf("%s option must be positive, got %v", name, v)
 		}
 		return int(v)
-	case json.Number:
-		n, err := v.Int64()
-		if err != nil {
-			t.Fatalf("%s option: %v", name, err)
-		}
-		if n < 0 {
-			t.Fatalf("%s option must be positive, got %d", name, n)
-		}
-		return int(n)
 	default:
 		t.Fatalf("%s option must be numeric, got %T", name, value)
 	}

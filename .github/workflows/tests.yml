@@ -2,9 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 jobs:
   test:
@@ -25,20 +25,8 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: Download dependencies
-        run: go mod download
-
       - name: Run tests
-        run: go test ./... -coverprofile=coverage.out -covermode=atomic
-
-      - name: View coverage
-        run: go tool cover -func=coverage.out
-
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: coverage-${{ matrix.go-version }}
-          path: coverage.out
+        run: go test ./...
 
   lint:
     name: Lint
@@ -46,8 +34,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
-        with:
-          submodules: recursive
 
       - name: Set up Go
         uses: actions/setup-go@v7

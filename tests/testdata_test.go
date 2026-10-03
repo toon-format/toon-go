@@ -17,19 +17,6 @@ type metricEvent struct {
 	Values []int  `toon:"values"`
 }
 
-type mixedEnvelope struct {
-	Events []any `toon:"events"`
-}
-
 type typedEnvelope struct {
 	Events []metricEvent `toon:"events"`
-}
-
-type bucket struct {
-	Values []int  `toon:"values"`
-	Label  string `toon:"label"`
-}
-
-type bucketSet struct {
-	Buckets []bucket `toon:"buckets"`
 }

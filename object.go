@@ -1,4 +1,4 @@
-package codec
+package toon
 
 // Field represents a single key/value pair in an ordered object.
 type Field struct {

@@ -1,8 +1,8 @@
-package codec
+package toon
 
 // normalizedValue represents a value that has been normalized according to the
 // TOON data model and is ready for emission by the encoder.
-type normalizedValue interface{}
+type normalizedValue any
 
 // numberValue captures a numeric literal that should be rendered verbatim.
 type numberValue struct {
