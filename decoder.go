@@ -7,6 +7,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	formatpkg "github.com/toon-format/toon-go/internal/format"
@@ -901,7 +902,7 @@ func parseHeaderSyntax(content string, strict bool) (header, headerStatus) {
 
 	hdr := header{delimiter: DelimiterComma}
 	keyPart := content[:bracket]
-	if strings.TrimRight(keyPart, " \t") != keyPart {
+	if strings.TrimRightFunc(keyPart, unicode.IsSpace) != keyPart {
 		// Whitespace between a key and its bracket segment (§6).
 		return header{}, headerMalformed
 	}
@@ -1046,7 +1047,7 @@ func parseFieldList(body string, delimiter Delimiter, strict bool) ([]fieldNode,
 				return nil, errors.New("malformed nested field group")
 			}
 			namePart = entry[:brace]
-			if strings.TrimRight(namePart, " \t") != namePart {
+			if strings.TrimRightFunc(namePart, unicode.IsSpace) != namePart {
 				return nil, errors.New("whitespace before a nested field group")
 			}
 			nested, err := parseFieldList(entry[brace+1:len(entry)-1], delimiter, strict)
