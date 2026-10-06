@@ -138,9 +138,9 @@ func IndexUnquoted(s string, target rune) int {
 // SplitDelimited splits a cell sequence on delimiter, honouring quoted regions,
 // preserving empty tokens, and trimming the surrounding U+0020 of each token
 // (§11.2, §12). A sequence that trims to nothing yields zero cells.
-func SplitDelimited(segment string, delimiter rune) ([]string, error) {
+func SplitDelimited(segment string, delimiter rune) []string {
 	if strings.Trim(segment, " ") == "" {
-		return nil, nil
+		return nil
 	}
 	tokens := make([]string, 0, 4)
 	var current strings.Builder
@@ -164,9 +164,6 @@ func SplitDelimited(segment string, delimiter rune) ([]string, error) {
 			current.WriteRune(r)
 		}
 	}
-	if inQuotes {
-		return nil, errors.New("unterminated quoted string")
-	}
 	tokens = append(tokens, strings.Trim(current.String(), " "))
-	return tokens, nil
+	return tokens
 }
