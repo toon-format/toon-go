@@ -1,6 +1,7 @@
 package toon_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/big"
@@ -85,6 +86,15 @@ func TestMarshalCustomTimeFormatter(t *testing.T) {
 		t.Fatalf("MarshalString: %v", err)
 	}
 	expectLines(t, doc, "ptr: \"02 Jan 24 03:04 UTC\"", "ts: \"02 Jan 24 03:04 UTC\"")
+}
+
+func TestMarshalJSONNumberPointer(t *testing.T) {
+	n := json.Number("123")
+	doc, err := toon.MarshalString(map[string]any{"v": n, "p": &n})
+	if err != nil {
+		t.Fatalf("MarshalString: %v", err)
+	}
+	expectLines(t, doc, "p: 123", "v: 123")
 }
 
 func TestStringerNormalization(t *testing.T) {
