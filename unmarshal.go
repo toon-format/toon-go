@@ -9,7 +9,7 @@ import (
 
 // Unmarshal decodes the TOON document in data into v, which must be a non-nil
 // pointer. Struct fields use `toon` struct tags, falling back to `json` tags,
-// for naming and omitempty semantics, mirroring Marshal behaviour.
+// for naming, mirroring Marshal behavior.
 func Unmarshal(data []byte, v any, opts ...DecoderOption) error {
 	if v == nil {
 		return errors.New("toon: Unmarshal nil target")
