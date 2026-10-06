@@ -1024,12 +1024,15 @@ func parseFieldList(body string, delimiter Delimiter, strict bool) ([]fieldNode,
 			if end < 0 || brace+end != len(entry)-1 {
 				return nil, errors.New("malformed nested field group")
 			}
+			namePart = entry[:brace]
+			if strings.TrimRight(namePart, " \t") != namePart {
+				return nil, errors.New("whitespace before a nested field group")
+			}
 			nested, err := parseFieldList(entry[brace+1:len(entry)-1], delimiter, strict)
 			if err != nil {
 				return nil, err
 			}
 			children = nested
-			namePart = entry[:brace]
 		}
 		name, err := decodeKeyToken(namePart)
 		if err != nil {
