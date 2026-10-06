@@ -247,6 +247,13 @@ func (p *parser) countNonBlank() int {
 // parseDocument applies the root-form discovery rules of §5.
 func (p *parser) parseDocument() (any, error) {
 	idx, ok := p.nextNonBlank(0)
+	for ok && p.lines[idx].depth > 0 {
+		p.pos = idx
+		if err := p.skipOverIndented(p.lines[idx], "unexpected indentation"); err != nil {
+			return nil, err
+		}
+		idx, ok = p.nextNonBlank(p.pos)
+	}
 	if !ok {
 		return map[string]any{}, nil
 	}
