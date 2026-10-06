@@ -328,7 +328,7 @@ func (p *parser) parseObjectInto(result map[string]any, seen map[string]bool, de
 			return nil
 		}
 		if line.depth > depth {
-			if isScalarLine(line.content, p.cfg.strict) {
+			if isScalarLine(line.content) {
 				// A scalar line outside root primitive position is an error in
 				// any mode (§5.2, §14.2).
 				return errorAt(line.number, "unexpected scalar line")
@@ -751,12 +751,10 @@ func (p *parser) parseListItem(line docLine, itemDepth int) (any, error) {
 }
 
 // isScalarLine reports whether content is a scalar line under the §5.2 line
-// classification: not a list item, not a header, and carrying no unquoted colon.
-func isScalarLine(content string, strict bool) bool {
+// classification: not a list item and carrying no unquoted colon, which every
+// header and key-value line has.
+func isScalarLine(content string) bool {
 	if content == "-" || strings.HasPrefix(content, "- ") {
-		return false
-	}
-	if _, status := parseHeaderSyntax(content, strict); status == headerOK {
 		return false
 	}
 	return parsepkg.IndexUnquoted(content, ':') < 0
@@ -867,6 +865,19 @@ func parseHeaderSyntax(content string, strict bool) (header, headerStatus) {
 	if colon := parsepkg.IndexUnquoted(content, ':'); colon >= 0 && colon < bracket {
 		return header{}, headerNotHeader
 	}
+	segment, after, found := strings.Cut(content[bracket+1:], "]")
+	if !found {
+		return header{}, headerNotHeader
+	}
+	fieldsEnd := -1
+	if strings.HasPrefix(after, "{") {
+		fieldsEnd = matchBrace(after)
+	}
+	if parsepkg.IndexUnquoted(after[fieldsEnd+1:], ':') < 0 {
+		// A colon inside the bracket segment or field list does not make the
+		// line a header; only one after them does.
+		return header{}, headerNotHeader
+	}
 
 	hdr := header{delimiter: DelimiterComma}
 	keyPart := content[:bracket]
@@ -883,11 +894,6 @@ func parseHeaderSyntax(content string, strict bool) (header, headerStatus) {
 		hdr.hasKey = true
 	}
 
-	rest := content[bracket+1:]
-	segment, after, found := strings.Cut(rest, "]")
-	if !found {
-		return header{}, headerMalformed
-	}
 	length, keyed, delimiter, ok := parseBracketSegment(segment)
 	if !ok {
 		return header{}, headerMalformed
@@ -897,16 +903,15 @@ func parseHeaderSyntax(content string, strict bool) (header, headerStatus) {
 	hdr.delimiter = delimiter
 
 	if strings.HasPrefix(after, "{") {
-		end := matchBrace(after)
-		if end < 0 {
+		if fieldsEnd < 0 {
 			return header{}, headerMalformed
 		}
-		fields, err := parseFieldList(after[1:end], delimiter, strict)
+		fields, err := parseFieldList(after[1:fieldsEnd], delimiter, strict)
 		if err != nil {
 			return header{}, headerMalformed
 		}
 		hdr.fields = fields
-		after = after[end+1:]
+		after = after[fieldsEnd+1:]
 	}
 
 	if !strings.HasPrefix(after, ":") {
