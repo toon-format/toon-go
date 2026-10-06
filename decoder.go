@@ -308,7 +308,7 @@ func (p *parser) parseDocument() (any, error) {
 
 	result := map[string]any{}
 	seen := map[string]bool{}
-	if err := p.parseObjectInto(result, seen, 0); err != nil {
+	if err := p.parseObjectInto(result, seen, 0, 0); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -334,8 +334,9 @@ func (p *parser) checkTrailing() error {
 }
 
 // parseObjectInto fills result with the fields of an object scope whose content
-// stands at depth (§8).
-func (p *parser) parseObjectInto(result map[string]any, seen map[string]bool, depth int) error {
+// stands at depth. The scope ends at the first line shallower than minDepth,
+// which lies below depth only for an adopted depth.
+func (p *parser) parseObjectInto(result map[string]any, seen map[string]bool, minDepth, depth int) error {
 	for p.pos < len(p.lines) {
 		line := p.lines[p.pos]
 		if line.blank {
@@ -345,10 +346,10 @@ func (p *parser) parseObjectInto(result map[string]any, seen map[string]bool, de
 			p.pos++
 			continue
 		}
-		if line.depth < depth {
+		if line.depth < minDepth {
 			return nil
 		}
-		if line.depth > depth {
+		if line.depth != depth {
 			if err := p.skipOverIndented(line, "unexpected indentation"); err != nil {
 				return err
 			}
@@ -394,9 +395,20 @@ func (p *parser) parseObjectInto(result map[string]any, seen map[string]bool, de
 	return nil
 }
 
-// skipOverIndented consumes a line that stands deeper than its scope's content
-// depth and belongs to no scope. Non-strict mode skips it, except a scalar line,
-// which is an error in any mode.
+// scopeDepth returns the content depth of the scope whose first line is the next
+// non-blank one, given the depth its content belongs at. Non-strict mode takes
+// a jumped first line's depth, so the scope keeps the lines that follow at that
+// depth rather than skipping them all as over-indented.
+func (p *parser) scopeDepth(depth int) int {
+	if idx, ok := p.nextNonBlank(p.pos); ok && !p.cfg.strict && p.lines[idx].depth > depth {
+		return p.lines[idx].depth
+	}
+	return depth
+}
+
+// skipOverIndented consumes a line that stands off its scope's content depth
+// and belongs to no scope. Non-strict mode skips it, except a scalar line, which
+// is an error in any mode.
 func (p *parser) skipOverIndented(line docLine, msg string) error {
 	if p.cfg.strict {
 		return errorAt(line.number, msg)
@@ -451,7 +463,7 @@ func (p *parser) parseNestedObject(depth int) (map[string]any, error) {
 		return nil, errorAt(p.lines[idx].number, "indentation depth jump")
 	}
 	seen := map[string]bool{}
-	if err := p.parseObjectInto(result, seen, depth); err != nil {
+	if err := p.parseObjectInto(result, seen, depth, p.scopeDepth(depth)); err != nil {
 		return nil, err
 	}
 	return result, nil
@@ -504,6 +516,7 @@ func (p *parser) parseTabularRows(hdr header, contentDepth int) (any, error) {
 	leaves := leafCount(hdr.fields)
 	rows := []any{}
 	delimiter := hdr.delimiter.rune()
+	rowDepth := p.scopeDepth(contentDepth)
 	span := p.pushSpan(contentDepth)
 	defer p.popSpan()
 
@@ -523,7 +536,7 @@ func (p *parser) parseTabularRows(hdr header, contentDepth int) (any, error) {
 		if line.depth < contentDepth {
 			break
 		}
-		if line.depth > contentDepth {
+		if line.depth != rowDepth {
 			if err := p.skipOverIndented(line, "unexpected indentation in tabular scope"); err != nil {
 				return nil, err
 			}
@@ -572,6 +585,7 @@ func (p *parser) parseKeyedRows(hdr header, contentDepth int) (any, error) {
 	seen := map[string]bool{}
 	delimiter := hdr.delimiter.rune()
 	count := 0
+	entryDepth := p.scopeDepth(contentDepth)
 	span := p.pushSpan(contentDepth)
 	defer p.popSpan()
 
@@ -591,7 +605,7 @@ func (p *parser) parseKeyedRows(hdr header, contentDepth int) (any, error) {
 		if line.depth < contentDepth {
 			break
 		}
-		if line.depth > contentDepth {
+		if line.depth != entryDepth {
 			if err := p.skipOverIndented(line, "unexpected indentation in keyed tabular scope"); err != nil {
 				return nil, err
 			}
@@ -639,6 +653,7 @@ func (p *parser) parseKeyedRows(hdr header, contentDepth int) (any, error) {
 
 func (p *parser) parseListItems(hdr header, contentDepth int) (any, error) {
 	items := []any{}
+	itemDepth := p.scopeDepth(contentDepth)
 	span := p.pushSpan(contentDepth)
 	defer p.popSpan()
 
@@ -658,7 +673,7 @@ func (p *parser) parseListItems(hdr header, contentDepth int) (any, error) {
 		if line.depth < contentDepth {
 			break
 		}
-		if line.depth > contentDepth {
+		if line.depth != itemDepth {
 			if err := p.skipOverIndented(line, "unexpected indentation in list scope"); err != nil {
 				return nil, err
 			}
@@ -670,7 +685,7 @@ func (p *parser) parseListItems(hdr header, contentDepth int) (any, error) {
 
 		p.pos++
 		span.consumed++
-		item, err := p.parseListItem(line, contentDepth)
+		item, err := p.parseListItem(line, itemDepth)
 		if err != nil {
 			return nil, err
 		}
@@ -724,7 +739,7 @@ func (p *parser) parseListItem(line docLine, itemDepth int) (any, error) {
 			if err := p.assign(result, seen, hdr.key, value, line.number); err != nil {
 				return nil, err
 			}
-			if err := p.parseObjectInto(result, seen, itemDepth+1); err != nil {
+			if err := p.parseObjectInto(result, seen, itemDepth+1, itemDepth+1); err != nil {
 				return nil, err
 			}
 			return result, nil
@@ -770,7 +785,7 @@ func (p *parser) parseListItem(line docLine, itemDepth int) (any, error) {
 	if err := p.assign(result, seen, key, value, line.number); err != nil {
 		return nil, err
 	}
-	if err := p.parseObjectInto(result, seen, itemDepth+1); err != nil {
+	if err := p.parseObjectInto(result, seen, itemDepth+1, itemDepth+1); err != nil {
 		return nil, err
 	}
 	return result, nil
