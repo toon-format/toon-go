@@ -757,13 +757,10 @@ func (p *parser) parseListItem(line docLine, itemDepth int) (any, error) {
 	return result, nil
 }
 
-// isScalarLine reports whether content is a scalar line under the §5.2 line
-// classification: not a list item and carrying no unquoted colon, which every
-// header and key-value line has.
+// isScalarLine reports whether content is a scalar line: one without an
+// unquoted colon, which every header and key-value line has. Callers pass only
+// lines off item depth, where a leading hyphen marks no list item.
 func isScalarLine(content string) bool {
-	if content == "-" || strings.HasPrefix(content, "- ") {
-		return false
-	}
 	return parsepkg.IndexUnquoted(content, ':') < 0
 }
 
