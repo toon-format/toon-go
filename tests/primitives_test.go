@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -28,13 +29,13 @@ func TestMarshalNormalization(t *testing.T) {
 	}
 
 	lines := strings.Split(doc, "\n")
-	if !containsLine(lines, "timestamp: \"2025-10-31T12:00:00Z\"") {
+	if !slices.Contains(lines, "timestamp: \"2025-10-31T12:00:00Z\"") {
 		t.Fatalf("timestamp line missing: %v", lines)
 	}
-	if !containsLine(lines, "nan: null") {
+	if !slices.Contains(lines, "nan: null") {
 		t.Fatalf("NaN normalization missing: %v", lines)
 	}
-	if !containsLine(lines, "big: 1000000") {
+	if !slices.Contains(lines, "big: 1000000") {
 		t.Fatalf("big int normalization missing: %v", lines)
 	}
 }
@@ -52,13 +53,13 @@ func TestMarshalLargeIntegerPrecision(t *testing.T) {
 	}
 
 	lines := strings.Split(doc, "\n")
-	if !containsLine(lines, "safe: 9007199254740991") {
+	if !slices.Contains(lines, "safe: 9007199254740991") {
 		t.Fatalf("safe integer should remain numeric: %v", lines)
 	}
-	if !containsLine(lines, "large: \"9007199254740993\"") {
+	if !slices.Contains(lines, "large: \"9007199254740993\"") {
 		t.Fatalf("large integer should be quoted: %v", lines)
 	}
-	if !containsLine(lines, "huge: \"1000000000000000000\"") {
+	if !slices.Contains(lines, "huge: \"1000000000000000000\"") {
 		t.Fatalf("huge integer should be quoted: %v", lines)
 	}
 
@@ -98,7 +99,7 @@ func TestMarshalCustomTimeFormatter(t *testing.T) {
 		t.Fatalf("MarshalString: %v", err)
 	}
 	lines := strings.Split(doc, "\n")
-	if !containsLine(lines, "ts: \"02 Jan 24 03:04 UTC\"") {
+	if !slices.Contains(lines, "ts: \"02 Jan 24 03:04 UTC\"") {
 		t.Fatalf("time formatter not applied: %v", lines)
 	}
 }

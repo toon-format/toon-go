@@ -1,11 +1,8 @@
 package toon_test
 
 import (
-	"slices"
 	"strings"
 	"testing"
-
-	"github.com/toon-format/toon-go"
 )
 
 func expectLines(t *testing.T, doc string, want ...string) {
@@ -21,21 +18,4 @@ func expectLines(t *testing.T, doc string, want ...string) {
 				i+1, lines[i], want[i], doc)
 		}
 	}
-}
-
-func containsLine(lines []string, target string) bool {
-	return slices.Contains(lines, target)
-}
-
-func decodeMap(t *testing.T, doc string, opts ...toon.DecoderOption) map[string]any {
-	t.Helper()
-	value, err := toon.DecodeString(doc, opts...)
-	if err != nil {
-		t.Fatalf("DecodeString: %v", err)
-	}
-	root, ok := value.(map[string]any)
-	if !ok {
-		t.Fatalf("expected map root, got %T", value)
-	}
-	return root
 }

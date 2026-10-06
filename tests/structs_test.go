@@ -1,6 +1,7 @@
 package toon_test
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -28,7 +29,7 @@ func TestMarshalStructOmitEmpty(t *testing.T) {
 		t.Fatalf("MarshalString: %v", err)
 	}
 	lines := strings.Split(doc, "\n")
-	if !containsLine(lines, "email: grace@example.com") {
+	if !slices.Contains(lines, "email: grace@example.com") {
 		t.Fatalf("email field missing: %s", doc)
 	}
 }
@@ -91,7 +92,7 @@ func TestPointerOmitEmptyRoundTrip(t *testing.T) {
 		t.Fatalf("MarshalString: %v", err)
 	}
 	lines := strings.Split(doc, "\n")
-	if !containsLine(lines, "name: Jo") || !containsLine(lines, "age: 7") {
+	if !slices.Contains(lines, "name: Jo") || !slices.Contains(lines, "age: 7") {
 		t.Fatalf("pointer fields missing: %s", doc)
 	}
 
