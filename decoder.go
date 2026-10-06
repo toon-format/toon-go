@@ -295,15 +295,13 @@ func (p *parser) parseDocument() (any, error) {
 		}
 	}
 
-	if status == headerNotHeader {
-		if p.countNonBlank() == 1 && parsepkg.IndexUnquoted(line.content, ':') < 0 {
-			p.pos++
-			value, err := decodeValueToken(line.content)
-			if err != nil {
-				return nil, errorWrap(line.number, err)
-			}
-			return value, nil
+	if p.countNonBlank() == 1 && isScalarLine(line.content) {
+		p.pos++
+		value, err := decodeValueToken(line.content)
+		if err != nil {
+			return nil, errorWrap(line.number, err)
 		}
+		return value, nil
 	}
 
 	result := map[string]any{}
