@@ -315,6 +315,13 @@ func (p *parser) checkTrailing() error {
 	if p.cfg.strict {
 		return errorAt(p.lines[idx].number, "trailing content after the root form")
 	}
+	// Non-strict mode ignores trailing content, except a scalar line, which is
+	// an error in any mode.
+	for _, line := range p.lines[idx:] {
+		if !line.blank && isScalarLine(line.content) {
+			return errorAt(line.number, "unexpected scalar line")
+		}
+	}
 	p.pos = len(p.lines)
 	return nil
 }
