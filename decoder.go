@@ -105,6 +105,12 @@ func prepareLines(input string, cfg decoderOptions) ([]docLine, error) {
 		if err != nil {
 			return nil, errorWrap(number, err)
 		}
+		if content == "" {
+			// Only the non-strict tab leniency leaves a line of nothing but
+			// indentation, and that leniency counts it as blank.
+			lines = append(lines, docLine{number: number, blank: true})
+			continue
+		}
 		lines = append(lines, docLine{number: number, depth: depth, content: content})
 	}
 
