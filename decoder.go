@@ -30,10 +30,10 @@ func NewDecoder(opts ...DecoderOption) *Decoder {
 	return &Decoder{cfg: cfg}
 }
 
-// Decode parses the provided TOON document. The bytes must be UTF-8; in strict
-// mode ill-formed sequences are an error rather than being passed through (§4).
+// Decode parses the provided TOON document. The bytes must be UTF-8;
+// ill-formed sequences are an error in any mode.
 func (d *Decoder) Decode(data []byte) (any, error) {
-	if d.cfg.strict && !utf8.Valid(data) {
+	if !utf8.Valid(data) {
 		return nil, invalidUTF8Error(data)
 	}
 	return d.DecodeString(string(data))
