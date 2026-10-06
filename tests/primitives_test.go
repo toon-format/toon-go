@@ -105,18 +105,16 @@ func TestMarshalCustomTimeFormatter(t *testing.T) {
 }
 
 func TestStringerNormalization(t *testing.T) {
-	t.Run("custom stringer", func(t *testing.T) {
-		val := struct {
-			ID fmt.Stringer `toon:"id"`
-		}{
-			ID: stringer("abc-123"),
-		}
-		doc, err := toon.MarshalString(val)
-		if err != nil {
-			t.Fatalf("MarshalString: %v", err)
-		}
-		expectLines(t, doc, "id: abc-123")
-	})
+	val := struct {
+		ID fmt.Stringer `toon:"id"`
+	}{
+		ID: stringer("abc-123"),
+	}
+	doc, err := toon.MarshalString(val)
+	if err != nil {
+		t.Fatalf("MarshalString: %v", err)
+	}
+	expectLines(t, doc, "id: abc-123")
 }
 
 type stringer string
