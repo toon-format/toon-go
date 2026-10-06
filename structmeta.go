@@ -36,7 +36,10 @@ func buildStructMeta(t reflect.Type) structMeta {
 		if !sf.IsExported() {
 			continue
 		}
-		tag := sf.Tag.Get("toon")
+		tag, ok := sf.Tag.Lookup("toon")
+		if !ok {
+			tag = sf.Tag.Get("json")
+		}
 		if tag == "-" {
 			continue
 		}

@@ -106,3 +106,28 @@ func TestPointerOmitEmptyRoundTrip(t *testing.T) {
 		t.Fatalf("age decode mismatch: %#v", decoded.Age)
 	}
 }
+
+func TestStructJSONTagFallback(t *testing.T) {
+	type account struct {
+		ID     int    `json:"id"`
+		Name   string `json:"name,omitempty"`
+		Secret string `json:"-"`
+		Plan   string `json:"plan" toon:"tier"`
+	}
+
+	doc, err := toon.MarshalString(account{ID: 7, Secret: "x", Plan: "pro"})
+	if err != nil {
+		t.Fatalf("MarshalString: %v", err)
+	}
+	if doc != "id: 7\ntier: pro" {
+		t.Fatalf("unexpected document: %q", doc)
+	}
+
+	var decoded account
+	if err := toon.UnmarshalString("id: 7\nname: Ada\ntier: pro", &decoded); err != nil {
+		t.Fatalf("UnmarshalString: %v", err)
+	}
+	if decoded != (account{ID: 7, Name: "Ada", Plan: "pro"}) {
+		t.Fatalf("unexpected struct: %#v", decoded)
+	}
+}
