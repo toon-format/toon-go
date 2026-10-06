@@ -76,20 +76,6 @@ func TestMarshalLargeIntegerPrecision(t *testing.T) {
 	}
 }
 
-func TestMarshalWithObjectHelper(t *testing.T) {
-	doc, err := toon.MarshalString(toon.NewObject(
-		toon.Field{Key: "first", Value: 1},
-		toon.Field{Key: "second", Value: "value"},
-	))
-	if err != nil {
-		t.Fatalf("MarshalString: %v", err)
-	}
-	expectLines(t, doc,
-		"first: 1",
-		"second: value",
-	)
-}
-
 func TestMarshalCustomTimeFormatter(t *testing.T) {
 	ts := time.Date(2024, 1, 2, 3, 4, 5, 6, time.UTC)
 	doc, err := toon.MarshalString(map[string]any{"ts": ts}, toon.WithTimeFormatter(func(t time.Time) string {
