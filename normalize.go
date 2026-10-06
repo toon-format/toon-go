@@ -18,7 +18,7 @@ import (
 //   - nil
 //   - bool
 //   - string
-//   - float64
+//   - numberValue
 //   - Object
 //   - []normalizedValue
 //
