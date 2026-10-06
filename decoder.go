@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -944,7 +945,8 @@ func parseBracketSegment(segment string) (int, bool, Delimiter, bool) {
 	}
 	length, err := strconv.Atoi(segment[:digits])
 	if err != nil {
-		return 0, false, DelimiterComma, false
+		// A length beyond int still forms a header, with a count no scope can meet.
+		length = math.MaxInt
 	}
 
 	rest := segment[digits:]
