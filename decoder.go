@@ -800,9 +800,6 @@ func leafCount(nodes []fieldNode) int {
 }
 
 func decodeKeyToken(token string) (string, error) {
-	if token == "" {
-		return "", errors.New("missing key before colon")
-	}
 	if parsepkg.IsQuotedToken(token) {
 		if err := parsepkg.ValidateQuotedToken(token); err != nil {
 			return "", err
@@ -1014,9 +1011,6 @@ func parseFieldList(body string, delimiter Delimiter, strict bool) ([]fieldNode,
 	seen := make(map[string]bool, len(entries))
 	for _, entry := range entries {
 		entry = strings.Trim(entry, " ")
-		if entry == "" {
-			return nil, errors.New("empty field entry")
-		}
 		namePart := entry
 		var children []fieldNode
 		if brace := topLevelBrace(entry); brace >= 0 {
@@ -1033,6 +1027,9 @@ func parseFieldList(body string, delimiter Delimiter, strict bool) ([]fieldNode,
 				return nil, err
 			}
 			children = nested
+		}
+		if namePart == "" {
+			return nil, errors.New("empty field name")
 		}
 		name, err := decodeKeyToken(namePart)
 		if err != nil {
