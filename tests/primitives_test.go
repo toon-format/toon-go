@@ -103,6 +103,18 @@ func TestStringerNormalization(t *testing.T) {
 	expectLines(t, doc, "id: abc-123")
 }
 
+func TestMarshalNilStringerPointer(t *testing.T) {
+	val := struct {
+		When *time.Time `toon:"when"`
+		ID   *stringer  `toon:"id"`
+	}{}
+	doc, err := toon.MarshalString(val)
+	if err != nil {
+		t.Fatalf("MarshalString: %v", err)
+	}
+	expectLines(t, doc, "when: null", "id: null")
+}
+
 type stringer string
 
 func (s stringer) String() string {

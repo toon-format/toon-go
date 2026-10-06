@@ -24,7 +24,10 @@ import (
 //
 // Big integers that exceed IEEE 754 precision are converted to decimal strings.
 func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
-	if v == nil {
+	// A nil pointer becomes null before the cases below can call its methods,
+	// which may dereference it.
+	rv := reflect.ValueOf(v)
+	if !rv.IsValid() || rv.Kind() == reflect.Pointer && rv.IsNil() {
 		return nil, nil
 	}
 
@@ -52,9 +55,6 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 		}
 		return numberValue{literal: strconv.FormatUint(u, 10)}, nil
 	case *big.Int:
-		if val == nil {
-			return nil, nil
-		}
 		if val.IsInt64() {
 			return normalize(val.Int64(), cfg)
 		}
@@ -71,18 +71,14 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 		return normalizeObjectFields([]Field{val}, cfg)
 	}
 
-	val := reflect.ValueOf(v)
-	switch val.Kind() {
+	switch rv.Kind() {
 	case reflect.Pointer:
-		if val.IsNil() {
-			return nil, nil
-		}
-		return normalize(val.Elem().Interface(), cfg)
+		return normalize(rv.Elem().Interface(), cfg)
 	case reflect.Slice, reflect.Array:
-		length := val.Len()
+		length := rv.Len()
 		result := make([]normalizedValue, 0, length)
 		for i := range length {
-			item, err := normalize(val.Index(i).Interface(), cfg)
+			item, err := normalize(rv.Index(i).Interface(), cfg)
 			if err != nil {
 				return nil, err
 			}
@@ -90,10 +86,10 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 		}
 		return result, nil
 	case reflect.Map:
-		if val.Type().Key().Kind() != reflect.String {
-			return nil, fmt.Errorf("toon: unsupported map key type %s", val.Type().Key())
+		if rv.Type().Key().Kind() != reflect.String {
+			return nil, fmt.Errorf("toon: unsupported map key type %s", rv.Type().Key())
 		}
-		iter := val.MapRange()
+		iter := rv.MapRange()
 		var fields []Field
 		for iter.Next() {
 			fieldValue, err := normalize(iter.Value().Interface(), cfg)
@@ -116,7 +112,7 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 		})
 		return Object{Fields: fields}, nil
 	case reflect.Struct:
-		return normalizeStructValue(val, cfg)
+		return normalizeStructValue(rv, cfg)
 	}
 
 	return nil, fmt.Errorf("toon: unsupported value of type %T", v)
