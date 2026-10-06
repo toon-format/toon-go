@@ -1013,6 +1013,7 @@ func parseFieldList(body string, delimiter Delimiter, strict bool) ([]fieldNode,
 	nodes := make([]fieldNode, 0, len(entries))
 	seen := make(map[string]bool, len(entries))
 	for _, entry := range entries {
+		entry = strings.Trim(entry, " ")
 		if entry == "" {
 			return nil, errors.New("empty field entry")
 		}
