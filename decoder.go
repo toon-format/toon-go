@@ -342,15 +342,9 @@ func (p *parser) parseObjectInto(result map[string]any, seen map[string]bool, de
 			return nil
 		}
 		if line.depth > depth {
-			if isScalarLine(line.content) {
-				// A scalar line outside root primitive position is an error in
-				// any mode (§5.2, §14.2).
-				return errorAt(line.number, "unexpected scalar line")
+			if err := p.skipOverIndented(line, "unexpected indentation"); err != nil {
+				return err
 			}
-			if p.cfg.strict {
-				return errorAt(line.number, "unexpected indentation")
-			}
-			p.pos++
 			continue
 		}
 
@@ -390,6 +384,20 @@ func (p *parser) parseObjectInto(result map[string]any, seen map[string]bool, de
 			return err
 		}
 	}
+	return nil
+}
+
+// skipOverIndented consumes a line that stands deeper than its scope's content
+// depth and belongs to no scope. Non-strict mode skips it, except a scalar line,
+// which is an error in any mode.
+func (p *parser) skipOverIndented(line docLine, msg string) error {
+	if p.cfg.strict {
+		return errorAt(line.number, msg)
+	}
+	if isScalarLine(line.content) {
+		return errorAt(line.number, "unexpected scalar line")
+	}
+	p.pos++
 	return nil
 }
 
@@ -509,10 +517,9 @@ func (p *parser) parseTabularRows(hdr header, contentDepth int) (any, error) {
 			break
 		}
 		if line.depth > contentDepth {
-			if p.cfg.strict {
-				return nil, errorAt(line.number, "unexpected indentation in tabular scope")
+			if err := p.skipOverIndented(line, "unexpected indentation in tabular scope"); err != nil {
+				return nil, err
 			}
-			p.pos++
 			continue
 		}
 		if !isRowLine(line.content, delimiter) {
@@ -578,10 +585,9 @@ func (p *parser) parseKeyedRows(hdr header, contentDepth int) (any, error) {
 			break
 		}
 		if line.depth > contentDepth {
-			if p.cfg.strict {
-				return nil, errorAt(line.number, "unexpected indentation in keyed tabular scope")
+			if err := p.skipOverIndented(line, "unexpected indentation in keyed tabular scope"); err != nil {
+				return nil, err
 			}
-			p.pos++
 			continue
 		}
 
@@ -646,10 +652,9 @@ func (p *parser) parseListItems(hdr header, contentDepth int) (any, error) {
 			break
 		}
 		if line.depth > contentDepth {
-			if p.cfg.strict {
-				return nil, errorAt(line.number, "unexpected indentation in list scope")
+			if err := p.skipOverIndented(line, "unexpected indentation in list scope"); err != nil {
+				return nil, err
 			}
-			p.pos++
 			continue
 		}
 		if line.content != "-" && !strings.HasPrefix(line.content, "- ") {
