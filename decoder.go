@@ -891,21 +891,14 @@ func parseHeaderSyntax(content string, strict bool) (header, headerStatus) {
 	if bracket < 0 {
 		return header{}, headerNotHeader
 	}
-	if colon := parsepkg.IndexUnquoted(content, ':'); colon >= 0 && colon < bracket {
+	// A header needs a colon, and its key can't contain one. Past this check,
+	// a grammar failure makes the line malformed instead of a key-value line.
+	if colon := parsepkg.IndexUnquoted(content, ':'); colon < 0 || colon < bracket {
 		return header{}, headerNotHeader
 	}
 	segment, after, found := strings.Cut(content[bracket+1:], "]")
 	if !found {
-		return header{}, headerNotHeader
-	}
-	fieldsEnd := -1
-	if strings.HasPrefix(after, "{") {
-		fieldsEnd = matchBrace(after)
-	}
-	if parsepkg.IndexUnquoted(after[fieldsEnd+1:], ':') < 0 {
-		// A colon inside the bracket segment or field list does not make the
-		// line a header; only one after them does.
-		return header{}, headerNotHeader
+		return header{}, headerMalformed
 	}
 
 	hdr := header{delimiter: DelimiterComma}
@@ -932,6 +925,7 @@ func parseHeaderSyntax(content string, strict bool) (header, headerStatus) {
 	hdr.delimiter = delimiter
 
 	if strings.HasPrefix(after, "{") {
+		fieldsEnd := matchBrace(after)
 		if fieldsEnd < 0 {
 			return header{}, headerMalformed
 		}
