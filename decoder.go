@@ -494,10 +494,7 @@ func (p *parser) parseArrayBody(hdr header, contentDepth int) (any, error) {
 }
 
 func (p *parser) parseInlineValues(hdr header) (any, error) {
-	tokens, err := parsepkg.SplitDelimited(hdr.inline, hdr.delimiter.rune())
-	if err != nil {
-		return nil, errorWrap(hdr.number, err)
-	}
+	tokens := parsepkg.SplitDelimited(hdr.inline, hdr.delimiter.rune())
 	values := make([]any, 0, len(tokens))
 	for _, token := range tokens {
 		value, err := decodeValueToken(token)
@@ -547,10 +544,7 @@ func (p *parser) parseTabularRows(hdr header, contentDepth int) (any, error) {
 		}
 
 		p.pos++
-		cells, err := parsepkg.SplitDelimited(line.content, delimiter)
-		if err != nil {
-			return nil, errorWrap(line.number, err)
-		}
+		cells := parsepkg.SplitDelimited(line.content, delimiter)
 		if p.cfg.strict && len(cells) != leaves {
 			return nil, errorAtf(line.number, "tabular row carries %d cells but the header declares %d", len(cells), leaves)
 		}
@@ -626,10 +620,7 @@ func (p *parser) parseKeyedRows(hdr header, contentDepth int) (any, error) {
 		if err != nil {
 			return nil, errorWrap(line.number, err)
 		}
-		cells, err := parsepkg.SplitDelimited(strings.Trim(line.content[colon+1:], " "), delimiter)
-		if err != nil {
-			return nil, errorWrap(line.number, err)
-		}
+		cells := parsepkg.SplitDelimited(strings.Trim(line.content[colon+1:], " "), delimiter)
 		if p.cfg.strict && len(cells) != leaves {
 			return nil, errorAtf(line.number, "entry row carries %d cells but the header declares %d", len(cells), leaves)
 		}
