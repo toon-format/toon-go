@@ -78,16 +78,13 @@ func TestMarshalLargeIntegerPrecision(t *testing.T) {
 
 func TestMarshalCustomTimeFormatter(t *testing.T) {
 	ts := time.Date(2024, 1, 2, 3, 4, 5, 6, time.UTC)
-	doc, err := toon.MarshalString(map[string]any{"ts": ts}, toon.WithTimeFormatter(func(t time.Time) string {
+	doc, err := toon.MarshalString(map[string]any{"ts": ts, "ptr": &ts}, toon.WithTimeFormatter(func(t time.Time) string {
 		return t.Format(time.RFC822)
 	}))
 	if err != nil {
 		t.Fatalf("MarshalString: %v", err)
 	}
-	lines := strings.Split(doc, "\n")
-	if !slices.Contains(lines, "ts: \"02 Jan 24 03:04 UTC\"") {
-		t.Fatalf("time formatter not applied: %v", lines)
-	}
+	expectLines(t, doc, "ptr: \"02 Jan 24 03:04 UTC\"", "ts: \"02 Jan 24 03:04 UTC\"")
 }
 
 func TestStringerNormalization(t *testing.T) {

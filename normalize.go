@@ -63,6 +63,8 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 		return normalize(&val, cfg)
 	case time.Time:
 		return cfg.timeFormatter(val), nil
+	case *time.Time:
+		return normalize(*val, cfg)
 	case fmt.Stringer:
 		return val.String(), nil
 	case Object:
