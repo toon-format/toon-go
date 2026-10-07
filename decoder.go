@@ -248,18 +248,14 @@ func (p *parser) countNonBlank() int {
 // parseDocument applies the root-form discovery rules of §5.
 func (p *parser) parseDocument() (any, error) {
 	idx, ok := p.nextNonBlank(0)
-	for ok && p.lines[idx].depth > 0 {
-		p.pos = idx
-		if err := p.skipOverIndented(p.lines[idx], "unexpected indentation"); err != nil {
-			return nil, err
-		}
-		idx, ok = p.nextNonBlank(p.pos)
-	}
 	if !ok {
 		return map[string]any{}, nil
 	}
 	p.pos = idx
 	line := p.lines[idx]
+	if line.depth > 0 {
+		return nil, errorAt(line.number, "unexpected indentation")
+	}
 
 	if line.content == "[]" {
 		p.pos++
@@ -291,9 +287,7 @@ func (p *parser) parseDocument() (any, error) {
 			return value, nil
 		}
 	case headerMalformed:
-		if p.cfg.strict {
-			return nil, errorAt(line.number, "malformed array header")
-		}
+		return nil, errorAt(line.number, "malformed array header")
 	}
 
 	if p.countNonBlank() == 1 && isScalarLine(line.content) {
@@ -314,21 +308,9 @@ func (p *parser) parseDocument() (any, error) {
 }
 
 func (p *parser) checkTrailing() error {
-	idx, ok := p.nextNonBlank(p.pos)
-	if !ok {
-		return nil
-	}
-	if p.cfg.strict {
+	if idx, ok := p.nextNonBlank(p.pos); ok {
 		return errorAt(p.lines[idx].number, "trailing content after the root form")
 	}
-	// Non-strict mode ignores trailing content, except a scalar line, which is
-	// an error in any mode.
-	for _, line := range p.lines[idx:] {
-		if !line.blank && isScalarLine(line.content) {
-			return errorAt(line.number, "unexpected scalar line")
-		}
-	}
-	p.pos = len(p.lines)
 	return nil
 }
 
@@ -349,10 +331,7 @@ func (p *parser) parseObjectInto(result map[string]any, seen map[string]bool, mi
 			return nil
 		}
 		if line.depth != depth {
-			if err := p.skipOverIndented(line, "unexpected indentation"); err != nil {
-				return err
-			}
-			continue
+			return errorAt(line.number, "unexpected indentation")
 		}
 
 		hdr, status := parseHeaderSyntax(line.content, p.cfg.strict)
@@ -374,13 +353,11 @@ func (p *parser) parseObjectInto(result map[string]any, seen map[string]bool, mi
 			}
 			continue
 		}
-		if p.cfg.strict {
-			switch {
-			case status == headerOK && !hdr.hasKey:
-				return errorAt(line.number, "keyless array header is valid only at the document root")
-			case status == headerMalformed:
-				return errorAt(line.number, "malformed array header")
-			}
+		switch {
+		case status == headerOK && !hdr.hasKey:
+			return errorAt(line.number, "keyless array header is valid only at the document root")
+		case status == headerMalformed:
+			return errorAt(line.number, "malformed array header")
 		}
 
 		key, value, err := p.parseKeyValueLine(line, depth)
@@ -396,27 +373,13 @@ func (p *parser) parseObjectInto(result map[string]any, seen map[string]bool, mi
 
 // scopeDepth returns the content depth of the scope whose first line is the next
 // non-blank one, given the depth its content belongs at. Non-strict mode takes
-// a jumped first line's depth, so the scope keeps the lines that follow at that
-// depth rather than skipping them all as over-indented.
+// a jumped first line's depth, so the scope reads the lines that follow at that
+// depth rather than rejecting them all as over-indented.
 func (p *parser) scopeDepth(depth int) int {
 	if idx, ok := p.nextNonBlank(p.pos); ok && !p.cfg.strict && p.lines[idx].depth > depth {
 		return p.lines[idx].depth
 	}
 	return depth
-}
-
-// skipOverIndented consumes a line that stands off its scope's content depth
-// and belongs to no scope. Non-strict mode skips it, except a scalar line, which
-// is an error in any mode.
-func (p *parser) skipOverIndented(line docLine, msg string) error {
-	if p.cfg.strict {
-		return errorAt(line.number, msg)
-	}
-	if isScalarLine(line.content) {
-		return errorAt(line.number, "unexpected scalar line")
-	}
-	p.pos++
-	return nil
 }
 
 // parseKeyValueLine consumes a key-value line whose key stands at depth and
@@ -533,10 +496,7 @@ func (p *parser) parseTabularRows(hdr header, contentDepth int) (any, error) {
 			break
 		}
 		if line.depth != rowDepth {
-			if err := p.skipOverIndented(line, "unexpected indentation in tabular scope"); err != nil {
-				return nil, err
-			}
-			continue
+			return nil, errorAt(line.number, "unexpected indentation in tabular scope")
 		}
 		if !isRowLine(line.content, delimiter) {
 			break
@@ -544,7 +504,7 @@ func (p *parser) parseTabularRows(hdr header, contentDepth int) (any, error) {
 
 		p.pos++
 		cells := parsepkg.SplitDelimited(line.content, delimiter)
-		if p.cfg.strict && len(cells) != leaves {
+		if len(cells) != leaves {
 			return nil, errorAtf(line.number, "tabular row carries %d cells but the header declares %d", len(cells), leaves)
 		}
 		index := 0
@@ -599,19 +559,12 @@ func (p *parser) parseKeyedRows(hdr header, contentDepth int) (any, error) {
 			break
 		}
 		if line.depth != entryDepth {
-			if err := p.skipOverIndented(line, "unexpected indentation in keyed tabular scope"); err != nil {
-				return nil, err
-			}
-			continue
+			return nil, errorAt(line.number, "unexpected indentation in keyed tabular scope")
 		}
 
 		colon := parsepkg.IndexUnquoted(line.content, ':')
 		if colon < 0 {
-			if p.cfg.strict {
-				return nil, errorAt(line.number, "entry row is missing a colon")
-			}
-			p.pos++
-			continue
+			return nil, errorAt(line.number, "entry row is missing a colon")
 		}
 
 		p.pos++
@@ -620,7 +573,7 @@ func (p *parser) parseKeyedRows(hdr header, contentDepth int) (any, error) {
 			return nil, errorWrap(line.number, err)
 		}
 		cells := parsepkg.SplitDelimited(strings.Trim(line.content[colon+1:], " "), delimiter)
-		if p.cfg.strict && len(cells) != leaves {
+		if len(cells) != leaves {
 			return nil, errorAtf(line.number, "entry row carries %d cells but the header declares %d", len(cells), leaves)
 		}
 		index := 0
@@ -664,10 +617,7 @@ func (p *parser) parseListItems(hdr header, contentDepth int) (any, error) {
 			break
 		}
 		if line.depth != itemDepth {
-			if err := p.skipOverIndented(line, "unexpected indentation in list scope"); err != nil {
-				return nil, err
-			}
-			continue
+			return nil, errorAt(line.number, "unexpected indentation in list scope")
 		}
 		if line.content != "-" && !strings.HasPrefix(line.content, "- ") {
 			break
@@ -704,38 +654,35 @@ func (p *parser) parseListItem(line docLine, itemDepth int) (any, error) {
 	hdr, status := parseHeaderSyntax(rest, p.cfg.strict)
 	hdr.number = line.number
 
-	if status == headerOK {
+	switch status {
+	case headerMalformed:
+		return nil, errorAt(line.number, "malformed array header")
+	case headerOK:
 		if !hdr.hasKey {
 			if hdr.fields != nil || hdr.keyed {
-				if p.cfg.strict {
-					return nil, errorAt(line.number, "a keyless fields-bearing header is valid only at the document root")
-				}
-			} else {
-				return p.parseArrayBody(hdr, itemDepth+1)
+				return nil, errorAt(line.number, "a keyless fields-bearing header is valid only at the document root")
 			}
-		} else {
-			result := map[string]any{}
-			seen := map[string]bool{}
-			var value any
-			var err error
-			if hdr.keyed {
-				value, err = p.parseKeyedRows(hdr, itemDepth+2)
-			} else {
-				value, err = p.parseArrayBody(hdr, itemDepth+2)
-			}
-			if err != nil {
-				return nil, err
-			}
-			if err := p.assign(result, seen, hdr.key, value, line.number); err != nil {
-				return nil, err
-			}
-			if err := p.parseObjectInto(result, seen, itemDepth+1, itemDepth+1); err != nil {
-				return nil, err
-			}
-			return result, nil
+			return p.parseArrayBody(hdr, itemDepth+1)
 		}
-	} else if status == headerMalformed && p.cfg.strict {
-		return nil, errorAt(line.number, "malformed array header")
+		result := map[string]any{}
+		seen := map[string]bool{}
+		var value any
+		var err error
+		if hdr.keyed {
+			value, err = p.parseKeyedRows(hdr, itemDepth+2)
+		} else {
+			value, err = p.parseArrayBody(hdr, itemDepth+2)
+		}
+		if err != nil {
+			return nil, err
+		}
+		if err := p.assign(result, seen, hdr.key, value, line.number); err != nil {
+			return nil, err
+		}
+		if err := p.parseObjectInto(result, seen, itemDepth+1, itemDepth+1); err != nil {
+			return nil, err
+		}
+		return result, nil
 	}
 
 	colon := parsepkg.IndexUnquoted(rest, ':')
@@ -801,13 +748,11 @@ func buildFromCells(nodes []fieldNode, cells []string, index *int) (map[string]a
 			result[node.name] = sub
 			continue
 		}
-		if *index < len(cells) {
-			value, err := decodeValueToken(cells[*index])
-			if err != nil {
-				return nil, err
-			}
-			result[node.name] = value
+		value, err := decodeValueToken(cells[*index])
+		if err != nil {
+			return nil, err
 		}
+		result[node.name] = value
 		*index++
 	}
 	return result, nil
