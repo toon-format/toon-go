@@ -154,8 +154,6 @@ scan:
 		}
 		return spaces / cfg.indentSize, text[offset:], nil
 	}
-	// Non-strict depth for tab indentation is implementation-defined; each
-	// leading tab counts as one level (§12).
 	return spaces/cfg.indentSize + tabs, text[offset:], nil
 }
 
