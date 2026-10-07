@@ -1,7 +1,6 @@
 package toon
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"math"
@@ -30,31 +29,31 @@ func NewDecoder(opts ...DecoderOption) *Decoder {
 	return &Decoder{cfg: cfg}
 }
 
-// Decode parses the provided TOON document. The bytes must be UTF-8;
-// ill-formed sequences are an error in any mode.
+// Decode parses the provided TOON document.
 func (d *Decoder) Decode(data []byte) (any, error) {
-	if !utf8.Valid(data) {
-		return nil, invalidUTF8Error(data)
-	}
 	return d.DecodeString(string(data))
 }
 
 // invalidUTF8Error reports the line of the first ill-formed UTF-8 sequence.
-func invalidUTF8Error(data []byte) error {
+func invalidUTF8Error(doc string) error {
 	offset := 0
-	for offset < len(data) {
-		r, size := utf8.DecodeRune(data[offset:])
+	for offset < len(doc) {
+		r, size := utf8.DecodeRuneInString(doc[offset:])
 		if r == utf8.RuneError && size <= 1 {
 			break
 		}
 		offset += size
 	}
-	line := bytes.Count(data[:offset], []byte{'\n'}) + 1
+	line := strings.Count(doc[:offset], "\n") + 1
 	return errorAt(line, "invalid UTF-8 sequence")
 }
 
-// DecodeString parses the provided TOON document.
+// DecodeString parses the provided TOON document. The document must be
+// UTF-8; ill-formed sequences are an error in any mode.
 func (d *Decoder) DecodeString(doc string) (any, error) {
+	if !utf8.ValidString(doc) {
+		return nil, invalidUTF8Error(doc)
+	}
 	lines, err := prepareLines(doc, d.cfg)
 	if err != nil {
 		return nil, err
