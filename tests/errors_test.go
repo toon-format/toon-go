@@ -23,16 +23,3 @@ func TestUnmarshalNonPointer(t *testing.T) {
 		t.Fatalf("expected error for non-pointer target")
 	}
 }
-
-func TestDecodeRejectsInvalidUTF8(t *testing.T) {
-	doc := []byte("a: 1\nb: x\xffy")
-	for _, strict := range []bool{true, false} {
-		_, err := toon.Decode(doc, toon.WithStrictMode(strict))
-		if err == nil {
-			t.Fatalf("strict=%v: expected an error for ill-formed UTF-8", strict)
-		}
-		if got, want := err.Error(), "line 2: invalid UTF-8 sequence"; got != want {
-			t.Fatalf("strict=%v: error = %q, want %q", strict, got, want)
-		}
-	}
-}

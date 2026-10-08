@@ -30,14 +30,6 @@ func TestEncoderReusability(t *testing.T) {
 	}
 }
 
-func TestDecoderOptionsCombination(t *testing.T) {
-	doc := "items[2|]: 1|2|3"
-	dec := toon.NewDecoder(toon.WithStrictMode(false))
-	if _, err := dec.DecodeString(doc); err != nil {
-		t.Fatalf("DecodeString: %v", err)
-	}
-}
-
 func TestTimeFormatterOptionDoesNotLeak(t *testing.T) {
 	enc := toon.NewEncoder(toon.WithTimeFormatter(func(time.Time) string {
 		return "custom"

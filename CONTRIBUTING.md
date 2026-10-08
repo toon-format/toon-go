@@ -12,7 +12,7 @@ go test ./...
 
 ## Pull Requests
 
-Spec behavior is tested through the spec fixtures – a missing case goes to [toon-format/spec](https://github.com/toon-format/spec) as a fixture, and so do changes to the format itself. Go-specific behavior, such as struct tags, `Unmarshal`, and options, gets a test under `tests/`. Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
+Spec behavior is tested through the spec fixtures – a missing case goes to [toon-format/spec](https://github.com/toon-format/spec) as a fixture, and so do changes to the format itself. A test under `tests/` is only for API the spec does not describe, such as struct tags, `Unmarshal`, and options. Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages.
 
 ## Maintainers
 
