@@ -843,7 +843,7 @@ func parseHeaderSyntax(content string, strict bool) (header, headerStatus) {
 
 	hdr := header{delimiter: DelimiterComma}
 	keyPart := content[:bracket]
-	if endsWithWhitespace(keyPart) {
+	if strings.TrimRight(keyPart, " \t") != keyPart {
 		// Whitespace between a key and its bracket segment (§6).
 		return header{}, headerMalformed
 	}
@@ -890,12 +890,6 @@ func parseHeaderSyntax(content string, strict bool) (header, headerStatus) {
 		return header{}, headerMalformed
 	}
 	return hdr, headerOK
-}
-
-// endsWithWhitespace checks for SP or HTAB only: unicode.IsSpace would also
-// reject an NBSP, which belongs to the key or field name.
-func endsWithWhitespace(s string) bool {
-	return strings.HasSuffix(s, " ") || strings.HasSuffix(s, "\t")
 }
 
 // parseBracketSegment parses "[N]", "[N<delim>]", "[N:]", or "[N:<delim>]".
@@ -994,7 +988,7 @@ func parseFieldList(body string, delimiter Delimiter, strict bool) ([]fieldNode,
 				return nil, errors.New("malformed nested field group")
 			}
 			namePart = entry[:brace]
-			if endsWithWhitespace(namePart) {
+			if strings.TrimRight(namePart, " \t") != namePart {
 				return nil, errors.New("whitespace before a nested field group")
 			}
 			nested, err := parseFieldList(entry[brace+1:len(entry)-1], delimiter, strict)
