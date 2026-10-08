@@ -72,6 +72,8 @@ Targets [TOON spec v4.4](https://github.com/toon-format/spec/blob/v4.4.0/SPEC.md
 - **Structs encode as objects keyed by their `toon` tags** – `toon:"name"` renames, `toon:"name,omitempty"` skips zero values, `toon:"-"` skips the field, a field without a `toon` tag falls back to its `json` tag, and an untagged field uses its Go name; maps need string keys, `time.Time` and `fmt.Stringer` values become strings, and `NaN` and `±Inf` become `null` ([§3](https://github.com/toon-format/spec/blob/v4.4.0/SPEC.md#3-encoding-normalization-reference-encoder))
 - **Decoded objects are `map[string]any`, so document key order is lost** – on encode, `toon.Object` keeps its field order and Go maps are written in sorted key order ([§2](https://github.com/toon-format/spec/blob/v4.4.0/SPEC.md#2-data-model))
 
+Releases follow [SemVer](https://semver.org/): a new spec MINOR version ships as a MINOR release, even when it changes how hand-written input decodes, and a MAJOR release means an API break or a new spec MAJOR version.
+
 ## Resources
 
 - **Specification:** [SPEC.md](https://github.com/toon-format/spec/blob/main/SPEC.md) – Normative rules and conformance checklists
