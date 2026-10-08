@@ -119,9 +119,9 @@ func defaultDecoderOptions() decoderOptions {
 // exactly five deviations: a declared length that doesn't match the content,
 // duplicate keys and field names (the last one wins), tab or misaligned
 // indentation (each tab one level, spaces floored), blank lines inside an
-// array or keyed object, and a block whose first line is indented too deep,
-// which then sets the block's depth. Every other decoding error applies in
-// both modes.
+// array or keyed tabular object, and a block whose first line is indented too
+// deep, which then sets the block's depth. Every other decoding error applies
+// in both modes.
 func WithStrictMode(strict bool) DecoderOption {
 	return func(o *decoderOptions) {
 		o.strict = strict

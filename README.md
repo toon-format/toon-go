@@ -61,7 +61,7 @@ Without a destination type, `Decode` and `DecodeString` return `map[string]any`,
 | `WithIndent(n)` | `2` | Spaces per indentation level when encoding |
 | `WithDelimiter(d)` | `DelimiterComma` | Delimiter for array values and tabular rows: `DelimiterComma`, `DelimiterTab`, or `DelimiterPipe` |
 | `WithTimeFormatter(f)` | RFC 3339 in UTC | Formats `time.Time` values |
-| `WithStrictMode(b)` | `true` | `false` accepts declared counts that don't match, duplicate keys (the last wins), tab or misaligned indentation, blank lines inside an array, and a block indented too deep; every other decoding error stays |
+| `WithStrictMode(b)` | `true` | `false` accepts declared counts that don't match, duplicate keys (the last wins), tab or misaligned indentation, blank lines inside an array or keyed tabular object, and a block indented too deep; every other decoding error stays |
 | `WithDecoderIndent(n)` | `2` | Expected spaces per indentation level when decoding |
 
 ## Specification
