@@ -29,7 +29,8 @@ func NewDecoder(opts ...DecoderOption) *Decoder {
 	return &Decoder{cfg: cfg}
 }
 
-// Decode parses the provided TOON document.
+// Decode parses the provided TOON document. The bytes must be UTF-8;
+// ill-formed sequences are an error in any mode.
 func (d *Decoder) Decode(data []byte) (any, error) {
 	return d.DecodeString(string(data))
 }
