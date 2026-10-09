@@ -159,17 +159,10 @@ func normalizeObjectFields(fields []Field, cfg encoderOptions) (Object, error) {
 }
 
 func normalizeFloat(f float64) (normalizedValue, error) {
-	switch {
-	case math.IsNaN(f):
+	if math.IsNaN(f) || math.IsInf(f, 0) {
 		return nil, nil
-	case math.IsInf(f, 1), math.IsInf(f, -1):
-		return nil, nil
-	default:
-		if f == math.Copysign(0, -1) {
-			f = 0
-		}
-		return numberValue{literal: formatpkg.FormatNumber(f)}, nil
 	}
+	return numberValue{literal: formatpkg.FormatNumber(f)}, nil
 }
 
 func normalizeNumberString(s string) (normalizedValue, error) {
