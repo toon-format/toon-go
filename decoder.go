@@ -352,7 +352,7 @@ func (p *parser) parseObjectInto(result map[string]any, seen map[string]bool, mi
 		}
 		switch {
 		case status == headerOK && !hdr.hasKey:
-			return errorAt(line.number, "keyless array header is valid only at the document root")
+			return errorAt(line.number, "keyless array header inside an object")
 		case status == headerMalformed:
 			return errorAt(line.number, "malformed array header")
 		}
