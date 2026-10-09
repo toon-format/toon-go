@@ -2,34 +2,35 @@ package toon
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
 	formatpkg "github.com/toon-format/toon-go/internal/format"
 )
 
-// Encoder serializes Go values as TOON documents.
+// Encoder serializes Go values as TOON documents. The zero value encodes with
+// the default options. An Encoder is safe for concurrent use.
 type Encoder struct {
-	cfg encoderOptions
+	opts []EncoderOption
 }
 
 // NewEncoder constructs an Encoder using the supplied options.
 func NewEncoder(opts ...EncoderOption) *Encoder {
-	cfg := defaultEncoderOptions()
-	for _, opt := range opts {
-		opt(&cfg)
-	}
-	return &Encoder{cfg: cfg}
+	return &Encoder{opts: slices.Clone(opts)}
 }
 
-// Marshal renders v into a TOON document. Values are first normalized to the
-// TOON data model (§2, §3), then encoded using the concrete syntax of §5–§12.
+// Marshal renders v as a TOON document.
 func (e *Encoder) Marshal(v any) ([]byte, error) {
-	normalized, err := normalize(v, e.cfg)
+	cfg := defaultEncoderOptions()
+	for _, opt := range e.opts {
+		opt(&cfg)
+	}
+	normalized, err := normalize(v, cfg)
 	if err != nil {
 		return nil, err
 	}
-	state := &encodeState{cfg: e.cfg}
+	state := &encodeState{cfg: cfg}
 	if err := state.encodeRoot(normalized); err != nil {
 		return nil, err
 	}
@@ -45,7 +46,7 @@ func (e *Encoder) MarshalString(v any) (string, error) {
 	return string(data), nil
 }
 
-// Marshal encodes v using a temporary encoder.
+// Marshal returns the TOON encoding of v.
 func Marshal(v any, opts ...EncoderOption) ([]byte, error) {
 	return NewEncoder(opts...).Marshal(v)
 }
@@ -57,7 +58,7 @@ func MarshalString(v any, opts ...EncoderOption) (string, error) {
 
 // fieldNode is one field entry of a header's field list. A node without
 // children is a leaf field; a node with children is a nested field group
-// declaring a nested-uniform column (§1.4, §9.3).
+// declaring a nested-uniform column.
 type fieldNode struct {
 	name     string
 	children []fieldNode
@@ -101,7 +102,6 @@ func (s *encodeState) formatPrimitive(value normalizedValue) (string, error) {
 	}
 }
 
-// encodeRoot renders the document root per §5.
 func (s *encodeState) encodeRoot(value normalizedValue) error {
 	switch val := value.(type) {
 	case nil, bool, string, numberValue:
@@ -109,8 +109,7 @@ func (s *encodeState) encodeRoot(value normalizedValue) error {
 		if err != nil {
 			return err
 		}
-		// Unquoted, a decoder would remove a leading U+FEFF as a byte-order
-		// mark (§7.2, §12).
+		// Unquoted, a decoder would remove a leading U+FEFF as a byte-order mark.
 		if strings.HasPrefix(token, "\uFEFF") {
 			if token, err = formatpkg.QuoteString(val.(string)); err != nil {
 				return err
@@ -120,7 +119,7 @@ func (s *encodeState) encodeRoot(value normalizedValue) error {
 		return nil
 	case Object:
 		if val.IsEmpty() {
-			// An empty object at the root yields an empty document (§8).
+			// An empty object at the root yields an empty document.
 			return nil
 		}
 		if nodes, ok := detectKeyedTabular(val); ok {
@@ -175,7 +174,6 @@ func (s *encodeState) encodeObjectField(field Field, depth int) error {
 		return s.encodeObjectBody(val, depth+1)
 	case []normalizedValue:
 		if len(val) == 0 {
-			// Empty arrays in object-field position use the explicit form (§9.1).
 			s.emit(indent + keyLit + ": []")
 			return nil
 		}
@@ -186,7 +184,7 @@ func (s *encodeState) encodeObjectField(field Field, depth int) error {
 }
 
 // encodeArray renders a non-empty array whose header stands at depth. keyLit is
-// empty for a root array (§9.1–§9.4).
+// empty for a root array.
 func (s *encodeState) encodeArray(keyLit string, values []normalizedValue, depth int) error {
 	indent := s.indent(depth)
 
@@ -229,7 +227,6 @@ func (s *encodeState) encodeArray(keyLit string, values []normalizedValue, depth
 	return nil
 }
 
-// emitRows writes one tabular row per element at rowDepth (§9.3).
 func (s *encodeState) emitRows(values []normalizedValue, nodes []fieldNode, rowDepth int) error {
 	indent := s.indent(rowDepth)
 	for _, value := range values {
@@ -246,8 +243,8 @@ func (s *encodeState) emitRows(values []normalizedValue, nodes []fieldNode, rowD
 	return nil
 }
 
-// encodeKeyedTabular renders an object in keyed tabular form (§9.5). keyLit is
-// empty when the object is the document root.
+// encodeKeyedTabular renders an object in keyed tabular form. keyLit is empty
+// when the object is the document root.
 func (s *encodeState) encodeKeyedTabular(keyLit string, obj Object, nodes []fieldNode, depth int) error {
 	header, err := s.renderHeader(keyLit, obj.Len(), true, nodes)
 	if err != nil {
@@ -273,7 +270,6 @@ func (s *encodeState) encodeKeyedTabular(keyLit string, obj Object, nodes []fiel
 	return nil
 }
 
-// encodeListItem renders one element of an array in list form (§9.4, §10).
 func (s *encodeState) encodeListItem(item normalizedValue, depth int) error {
 	indent := s.indent(depth)
 
@@ -288,7 +284,7 @@ func (s *encodeState) encodeListItem(item normalizedValue, depth int) error {
 
 	case []normalizedValue:
 		if len(val) == 0 {
-			// The key: [] form does not apply to list items (§9.2).
+			// The key: [] form does not apply to list items.
 			s.emit(indent + "- [0" + s.cfg.delimiter.symbol() + "]:")
 			return nil
 		}
@@ -309,7 +305,7 @@ func (s *encodeState) encodeListItem(item normalizedValue, depth int) error {
 			return nil
 		}
 		// A keyless fields-bearing header is valid only at the document root,
-		// so nested arrays of objects use list form here (§9.4).
+		// so nested arrays of objects use list form here.
 		s.emit(indent + "- " + header)
 		for _, nested := range val {
 			if err := s.encodeListItem(nested, depth+1); err != nil {
@@ -325,7 +321,7 @@ func (s *encodeState) encodeListItem(item normalizedValue, depth int) error {
 		}
 		// The first field is carried on the hyphen line and stands at depth+1
 		// for all scope purposes, so it is rendered at depth+1 and its opening
-		// line is then rewritten to carry the marker (§10).
+		// line is then rewritten to carry the marker.
 		start := len(s.lines)
 		if err := s.encodeObjectField(val.Fields[0], depth+1); err != nil {
 			return err
@@ -344,8 +340,8 @@ func (s *encodeState) encodeListItem(item normalizedValue, depth int) error {
 	}
 }
 
-// rowCells walks the field list depth-first and renders one cell per leaf field
-// (§9.3).
+// rowCells walks the field list depth-first and renders one cell per leaf
+// field.
 func (s *encodeState) rowCells(obj Object, nodes []fieldNode) ([]string, error) {
 	cells := make([]string, 0, len(nodes))
 	for _, node := range nodes {
@@ -374,7 +370,7 @@ func (s *encodeState) rowCells(obj Object, nodes []fieldNode) ([]string, error) 
 	return cells, nil
 }
 
-// renderHeader builds an array, tabular, or keyed header (§6).
+// renderHeader builds an array, tabular, or keyed header.
 func (s *encodeState) renderHeader(keyLit string, length int, keyed bool, nodes []fieldNode) (string, error) {
 	var b strings.Builder
 	b.WriteString(keyLit)
@@ -415,7 +411,7 @@ func (s *encodeState) renderFieldList(nodes []fieldNode) (string, error) {
 	return "{" + strings.Join(parts, s.delim()) + "}", nil
 }
 
-// detectTabular applies the tabular detection rules of §9.3.
+// detectTabular reports the shared columns of an array of objects.
 func detectTabular(values []normalizedValue) ([]fieldNode, bool) {
 	if len(values) == 0 {
 		return nil, false
@@ -431,7 +427,8 @@ func detectTabular(values []normalizedValue) ([]fieldNode, bool) {
 	return detectColumns(objects)
 }
 
-// detectKeyedTabular applies the keyed tabular detection rules of §9.5.
+// detectKeyedTabular reports the shared columns of an object whose values are
+// objects.
 func detectKeyedTabular(obj Object) ([]fieldNode, bool) {
 	if obj.Len() < 2 {
 		return nil, false
@@ -448,7 +445,7 @@ func detectKeyedTabular(obj Object) ([]fieldNode, bool) {
 }
 
 // detectColumns reports the shared field structure of a sequence of objects, or
-// false when any column is neither uniform-primitive nor nested-uniform (§9.3).
+// false when any column is neither uniform-primitive nor nested-uniform.
 func detectColumns(objects []Object) ([]fieldNode, bool) {
 	if len(objects) == 0 {
 		return nil, false

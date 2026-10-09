@@ -1,9 +1,11 @@
 package toon_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/big"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -28,13 +30,13 @@ func TestMarshalNormalization(t *testing.T) {
 	}
 
 	lines := strings.Split(doc, "\n")
-	if !containsLine(lines, "timestamp: \"2025-10-31T12:00:00Z\"") {
+	if !slices.Contains(lines, "timestamp: \"2025-10-31T12:00:00Z\"") {
 		t.Fatalf("timestamp line missing: %v", lines)
 	}
-	if !containsLine(lines, "nan: null") {
+	if !slices.Contains(lines, "nan: null") {
 		t.Fatalf("NaN normalization missing: %v", lines)
 	}
-	if !containsLine(lines, "big: 1000000") {
+	if !slices.Contains(lines, "big: 1000000") {
 		t.Fatalf("big int normalization missing: %v", lines)
 	}
 }
@@ -52,13 +54,13 @@ func TestMarshalLargeIntegerPrecision(t *testing.T) {
 	}
 
 	lines := strings.Split(doc, "\n")
-	if !containsLine(lines, "safe: 9007199254740991") {
+	if !slices.Contains(lines, "safe: 9007199254740991") {
 		t.Fatalf("safe integer should remain numeric: %v", lines)
 	}
-	if !containsLine(lines, "large: \"9007199254740993\"") {
+	if !slices.Contains(lines, "large: \"9007199254740993\"") {
 		t.Fatalf("large integer should be quoted: %v", lines)
 	}
-	if !containsLine(lines, "huge: \"1000000000000000000\"") {
+	if !slices.Contains(lines, "huge: \"1000000000000000000\"") {
 		t.Fatalf("huge integer should be quoted: %v", lines)
 	}
 
@@ -75,47 +77,57 @@ func TestMarshalLargeIntegerPrecision(t *testing.T) {
 	}
 }
 
-func TestMarshalWithObjectHelper(t *testing.T) {
-	doc, err := toon.MarshalString(toon.NewObject(
-		toon.Field{Key: "first", Value: 1},
-		toon.Field{Key: "second", Value: "value"},
-	))
+func TestMarshalFloat32ShortestDigits(t *testing.T) {
+	doc, err := toon.MarshalString([]float32{0.1, 1e-6, 3.4e38})
 	if err != nil {
 		t.Fatalf("MarshalString: %v", err)
 	}
-	expectLines(t, doc,
-		"first: 1",
-		"second: value",
-	)
+	expectLines(t, doc, "[3]: 0.1,0.000001,3.4e+38")
 }
 
 func TestMarshalCustomTimeFormatter(t *testing.T) {
 	ts := time.Date(2024, 1, 2, 3, 4, 5, 6, time.UTC)
-	doc, err := toon.MarshalString(map[string]any{"ts": ts}, toon.WithTimeFormatter(func(t time.Time) string {
+	doc, err := toon.MarshalString(map[string]any{"ts": ts, "ptr": &ts}, toon.WithTimeFormatter(func(t time.Time) string {
 		return t.Format(time.RFC822)
 	}))
 	if err != nil {
 		t.Fatalf("MarshalString: %v", err)
 	}
-	lines := strings.Split(doc, "\n")
-	if !containsLine(lines, "ts: \"02 Jan 24 03:04 UTC\"") {
-		t.Fatalf("time formatter not applied: %v", lines)
+	expectLines(t, doc, "ptr: \"02 Jan 24 03:04 UTC\"", "ts: \"02 Jan 24 03:04 UTC\"")
+}
+
+func TestMarshalJSONNumberPointer(t *testing.T) {
+	n := json.Number("123")
+	doc, err := toon.MarshalString(map[string]any{"v": n, "p": &n})
+	if err != nil {
+		t.Fatalf("MarshalString: %v", err)
 	}
+	expectLines(t, doc, "p: 123", "v: 123")
 }
 
 func TestStringerNormalization(t *testing.T) {
-	t.Run("custom stringer", func(t *testing.T) {
-		val := struct {
-			ID fmt.Stringer `toon:"id"`
-		}{
-			ID: stringer("abc-123"),
-		}
-		doc, err := toon.MarshalString(val)
-		if err != nil {
-			t.Fatalf("MarshalString: %v", err)
-		}
-		expectLines(t, doc, "id: abc-123")
-	})
+	val := struct {
+		ID fmt.Stringer `toon:"id"`
+	}{
+		ID: stringer("abc-123"),
+	}
+	doc, err := toon.MarshalString(val)
+	if err != nil {
+		t.Fatalf("MarshalString: %v", err)
+	}
+	expectLines(t, doc, "id: abc-123")
+}
+
+func TestMarshalNilStringerPointer(t *testing.T) {
+	val := struct {
+		When *time.Time `toon:"when"`
+		ID   *stringer  `toon:"id"`
+	}{}
+	doc, err := toon.MarshalString(val)
+	if err != nil {
+		t.Fatalf("MarshalString: %v", err)
+	}
+	expectLines(t, doc, "when: null", "id: null")
 }
 
 type stringer string

@@ -8,23 +8,27 @@ import (
 	"reflect"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	formatpkg "github.com/toon-format/toon-go/internal/format"
 )
 
-// normalize applies the data-model rules from Section 2 and Section 3 to a Go
-// value, producing a structure ready for encoding. The returned value is one of:
+// normalize converts a Go value to the TOON data model, ready for encoding. The
+// returned value is one of:
 //   - nil
 //   - bool
 //   - string
-//   - float64
+//   - numberValue
 //   - Object
 //   - []normalizedValue
 //
 // Big integers that exceed IEEE 754 precision are converted to decimal strings.
 func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
-	if v == nil {
+	// A nil pointer becomes null before the cases below can call its methods,
+	// which may dereference it.
+	rv := reflect.ValueOf(v)
+	if !rv.IsValid() || rv.Kind() == reflect.Pointer && rv.IsNil() {
 		return nil, nil
 	}
 
@@ -34,11 +38,12 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 	case bool:
 		return val, nil
 	case json.Number:
-		return normalizeNumberString(val.String())
+		return normalizeNumberString(val.String()), nil
 	case float32:
-		return normalizeFloat(float64(val))
+		// Formatting at float64 precision would print float32(0.1) as 0.10000000149011612.
+		return normalizeNumberString(strconv.FormatFloat(float64(val), 'g', -1, 32)), nil
 	case float64:
-		return normalizeFloat(val)
+		return normalizeFloat(val), nil
 	case int, int8, int16, int32, int64:
 		i := reflect.ValueOf(val).Int()
 		if i > maxSafeInteger || i < -maxSafeInteger {
@@ -52,9 +57,6 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 		}
 		return numberValue{literal: strconv.FormatUint(u, 10)}, nil
 	case *big.Int:
-		if val == nil {
-			return nil, nil
-		}
 		if val.IsInt64() {
 			return normalize(val.Int64(), cfg)
 		}
@@ -63,6 +65,10 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 		return normalize(&val, cfg)
 	case time.Time:
 		return cfg.timeFormatter(val), nil
+	case *time.Time:
+		return normalize(*val, cfg)
+	case *json.Number:
+		return normalize(*val, cfg)
 	case fmt.Stringer:
 		return val.String(), nil
 	case Object:
@@ -71,18 +77,14 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 		return normalizeObjectFields([]Field{val}, cfg)
 	}
 
-	val := reflect.ValueOf(v)
-	switch val.Kind() {
+	switch rv.Kind() {
 	case reflect.Pointer:
-		if val.IsNil() {
-			return nil, nil
-		}
-		return normalize(val.Elem().Interface(), cfg)
+		return normalize(rv.Elem().Interface(), cfg)
 	case reflect.Slice, reflect.Array:
-		length := val.Len()
+		length := rv.Len()
 		result := make([]normalizedValue, 0, length)
 		for i := range length {
-			item, err := normalize(val.Index(i).Interface(), cfg)
+			item, err := normalize(rv.Index(i).Interface(), cfg)
 			if err != nil {
 				return nil, err
 			}
@@ -90,10 +92,10 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 		}
 		return result, nil
 	case reflect.Map:
-		if val.Type().Key().Kind() != reflect.String {
-			return nil, fmt.Errorf("toon: unsupported map key type %s", val.Type().Key())
+		if rv.Type().Key().Kind() != reflect.String {
+			return nil, fmt.Errorf("toon: unsupported map key type %s", rv.Type().Key())
 		}
-		iter := val.MapRange()
+		iter := rv.MapRange()
 		var fields []Field
 		for iter.Next() {
 			fieldValue, err := normalize(iter.Value().Interface(), cfg)
@@ -106,17 +108,11 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 			})
 		}
 		slices.SortFunc(fields, func(a, b Field) int {
-			if a.Key < b.Key {
-				return -1
-			}
-			if a.Key > b.Key {
-				return 1
-			}
-			return 0
+			return strings.Compare(a.Key, b.Key)
 		})
 		return Object{Fields: fields}, nil
 	case reflect.Struct:
-		return normalizeStructValue(val, cfg)
+		return normalizeStructValue(rv, cfg)
 	}
 
 	return nil, fmt.Errorf("toon: unsupported value of type %T", v)
@@ -157,28 +153,18 @@ func normalizeObjectFields(fields []Field, cfg encoderOptions) (Object, error) {
 	return Object{Fields: normalized}, nil
 }
 
-func normalizeFloat(f float64) (normalizedValue, error) {
-	switch {
-	case math.IsNaN(f):
-		return nil, nil
-	case math.IsInf(f, 1), math.IsInf(f, -1):
-		return nil, nil
-	default:
-		if f == math.Copysign(0, -1) {
-			f = 0
-		}
-		return numberValue{literal: formatpkg.FormatNumber(f)}, nil
+func normalizeFloat(f float64) normalizedValue {
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		return nil
 	}
+	return numberValue{literal: formatpkg.FormatNumber(f)}
 }
 
-func normalizeNumberString(s string) (normalizedValue, error) {
+func normalizeNumberString(s string) normalizedValue {
 	f, err := strconv.ParseFloat(s, 64)
 	if err != nil {
-		// Preserve as string literal; encoder will handle quoting.
-		return s, nil
+		// A token that float64 cannot parse stays a string.
+		return s
 	}
-	if math.IsInf(f, 0) || math.IsNaN(f) {
-		return nil, nil
-	}
-	return numberValue{literal: formatpkg.FormatNumber(f)}, nil
+	return normalizeFloat(f)
 }

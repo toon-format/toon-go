@@ -6,7 +6,7 @@ import (
 )
 
 // Delimiter identifies the character used to split field entries, inline array
-// values, tabular row cells, and keyed entry-row cells (§1.5).
+// values, tabular row cells, and keyed entry-row cells.
 type Delimiter rune
 
 const (
@@ -18,6 +18,8 @@ const (
 	DelimiterPipe Delimiter = '|'
 )
 
+// String returns "comma", "tab", or "pipe", or delimiter('x') for any other
+// rune x.
 func (d Delimiter) String() string {
 	switch d {
 	case DelimiterComma:
@@ -41,7 +43,7 @@ func (d Delimiter) rune() rune {
 }
 
 // symbol returns the delimiter symbol as it appears inside a bracket segment.
-// Comma is implied by its absence (§6).
+// Comma is implied by its absence.
 func (d Delimiter) symbol() string {
 	if d == DelimiterComma {
 		return ""
@@ -53,7 +55,7 @@ func validDelimiter(d Delimiter) bool {
 	return d == DelimiterComma || d == DelimiterTab || d == DelimiterPipe
 }
 
-// EncoderOption mutates encoding behaviour.
+// EncoderOption configures an Encoder.
 type EncoderOption func(*encoderOptions)
 
 type encoderOptions struct {
@@ -72,7 +74,8 @@ func defaultEncoderOptions() encoderOptions {
 	}
 }
 
-// WithIndent configures the number of spaces used per indentation level.
+// WithIndent configures the number of spaces used per indentation level. A
+// value below 1 is ignored.
 func WithIndent(spaces int) EncoderOption {
 	return func(o *encoderOptions) {
 		if spaces > 0 {
@@ -81,8 +84,8 @@ func WithIndent(spaces int) EncoderOption {
 	}
 }
 
-// WithDelimiter configures the document delimiter. Conforming encoders declare
-// it as the active delimiter of every header they emit (§11.1).
+// WithDelimiter sets the delimiter that every emitted header declares. A value
+// other than DelimiterComma, DelimiterTab, or DelimiterPipe is ignored.
 func WithDelimiter(delimiter Delimiter) EncoderOption {
 	return func(o *encoderOptions) {
 		if validDelimiter(delimiter) {
@@ -91,7 +94,8 @@ func WithDelimiter(delimiter Delimiter) EncoderOption {
 	}
 }
 
-// WithTimeFormatter specifies the formatter used for time.Time normalization.
+// WithTimeFormatter specifies the formatter used for time.Time normalization. A
+// nil formatter is ignored.
 func WithTimeFormatter(formatter func(time.Time) string) EncoderOption {
 	return func(o *encoderOptions) {
 		if formatter != nil {
@@ -100,7 +104,7 @@ func WithTimeFormatter(formatter func(time.Time) string) EncoderOption {
 	}
 }
 
-// DecoderOption mutates decoder behaviour.
+// DecoderOption configures a Decoder.
 type DecoderOption func(*decoderOptions)
 
 type decoderOptions struct {
@@ -128,7 +132,8 @@ func WithStrictMode(strict bool) DecoderOption {
 	}
 }
 
-// WithDecoderIndent configures the expected indentation step.
+// WithDecoderIndent configures the expected indentation step. A value below 1
+// is ignored.
 func WithDecoderIndent(spaces int) DecoderOption {
 	return func(o *decoderOptions) {
 		if spaces > 0 {
