@@ -50,3 +50,19 @@ func TestTimeFormatterOptionDoesNotLeak(t *testing.T) {
 		t.Fatalf("time formatter leaked into default encoder")
 	}
 }
+
+func TestZeroValueCodersUseDefaults(t *testing.T) {
+	var enc toon.Encoder
+	doc, err := enc.MarshalString(map[string]any{"a": []int{1, 2}})
+	if err != nil || doc != "a[2]: 1,2" {
+		t.Fatalf("zero Encoder: %q, %v", doc, err)
+	}
+
+	var dec toon.Decoder
+	if _, err := dec.DecodeString(doc); err != nil {
+		t.Fatalf("zero Decoder: %v", err)
+	}
+	if _, err := dec.DecodeString("a[1]: 1,2"); err == nil {
+		t.Fatal("zero Decoder is not strict")
+	}
+}

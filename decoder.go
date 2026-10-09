@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -16,17 +17,14 @@ import (
 // Numbers are returned as float64, objects as map[string]any, and arrays as
 // []any. Because Go maps do not retain insertion order, the decoder does not
 // preserve document key order; §2 requires this deviation to be documented.
+// The zero value decodes with the default options.
 type Decoder struct {
-	cfg decoderOptions
+	opts []DecoderOption
 }
 
 // NewDecoder constructs a Decoder with the given options.
 func NewDecoder(opts ...DecoderOption) *Decoder {
-	cfg := defaultDecoderOptions()
-	for _, opt := range opts {
-		opt(&cfg)
-	}
-	return &Decoder{cfg: cfg}
+	return &Decoder{opts: slices.Clone(opts)}
 }
 
 // Decode parses the provided TOON document. The bytes must be UTF-8;
@@ -55,11 +53,15 @@ func (d *Decoder) DecodeString(doc string) (any, error) {
 	if !utf8.ValidString(doc) {
 		return nil, invalidUTF8Error(doc)
 	}
-	lines, err := prepareLines(doc, d.cfg)
+	cfg := defaultDecoderOptions()
+	for _, opt := range d.opts {
+		opt(&cfg)
+	}
+	lines, err := prepareLines(doc, cfg)
 	if err != nil {
 		return nil, err
 	}
-	p := newParser(lines, d.cfg)
+	p := newParser(lines, cfg)
 	return p.parseDocument()
 }
 

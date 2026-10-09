@@ -2,34 +2,36 @@ package toon
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
 	formatpkg "github.com/toon-format/toon-go/internal/format"
 )
 
-// Encoder serializes Go values as TOON documents.
+// Encoder serializes Go values as TOON documents. The zero value encodes with
+// the default options.
 type Encoder struct {
-	cfg encoderOptions
+	opts []EncoderOption
 }
 
 // NewEncoder constructs an Encoder using the supplied options.
 func NewEncoder(opts ...EncoderOption) *Encoder {
-	cfg := defaultEncoderOptions()
-	for _, opt := range opts {
-		opt(&cfg)
-	}
-	return &Encoder{cfg: cfg}
+	return &Encoder{opts: slices.Clone(opts)}
 }
 
 // Marshal renders v into a TOON document. Values are first normalized to the
 // TOON data model (§2, §3), then encoded using the concrete syntax of §5–§12.
 func (e *Encoder) Marshal(v any) ([]byte, error) {
-	normalized, err := normalize(v, e.cfg)
+	cfg := defaultEncoderOptions()
+	for _, opt := range e.opts {
+		opt(&cfg)
+	}
+	normalized, err := normalize(v, cfg)
 	if err != nil {
 		return nil, err
 	}
-	state := &encodeState{cfg: e.cfg}
+	state := &encodeState{cfg: cfg}
 	if err := state.encodeRoot(normalized); err != nil {
 		return nil, err
 	}
