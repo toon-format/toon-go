@@ -63,12 +63,12 @@ func (d *Decoder) DecodeString(doc string) (any, error) {
 	return p.parseDocument()
 }
 
-// Decode uses a temporary decoder configured with opts.
+// Decode parses the TOON document in data.
 func Decode(data []byte, opts ...DecoderOption) (any, error) {
 	return NewDecoder(opts...).Decode(data)
 }
 
-// DecodeString decodes s using a temporary decoder.
+// DecodeString parses the TOON document s.
 func DecodeString(s string, opts ...DecoderOption) (any, error) {
 	return NewDecoder(opts...).DecodeString(s)
 }

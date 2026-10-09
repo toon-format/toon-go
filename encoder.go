@@ -46,7 +46,7 @@ func (e *Encoder) MarshalString(v any) (string, error) {
 	return string(data), nil
 }
 
-// Marshal encodes v using a temporary encoder.
+// Marshal returns the TOON encoding of v.
 func Marshal(v any, opts ...EncoderOption) ([]byte, error) {
 	return NewEncoder(opts...).Marshal(v)
 }
