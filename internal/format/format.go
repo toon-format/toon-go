@@ -1,5 +1,5 @@
 // Package format implements the string, key, and number rendering rules of the
-// TOON specification (§2, §7).
+// TOON specification.
 package format
 
 import (
@@ -11,7 +11,7 @@ import (
 	"unicode/utf8"
 )
 
-// Context carries the delimiter that governs delimiter-aware quoting (§11.1).
+// Context carries the delimiter that governs delimiter-aware quoting.
 // Conforming encoders declare the document delimiter as the active delimiter of
 // every header they emit, so a single value covers both roles.
 type Context struct {
@@ -22,16 +22,16 @@ func (c Context) delimiter() rune {
 	return c.Delimiter
 }
 
-// numericLike matches the §7.2 numeric-like quoting trigger. It accepts a
-// leading plus and leading zeros, both of which encoders must quote even though
-// the decoder grammar of §4 rejects them as numbers.
+// numericLike matches the numeric-like quoting trigger. It accepts a leading
+// plus and leading zeros, both of which encoders must quote even though the
+// decoder number grammar rejects them as numbers.
 var numericLike = regexp.MustCompile(`^[+-]?[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$`)
 
-// unquotedKey matches the §7.3 pattern for keys that may be emitted bare. The
-// character class is ASCII-only, as the specification spells it out explicitly.
+// unquotedKey matches keys that may be emitted bare. The character class is
+// ASCII-only, as the specification defines it.
 var unquotedKey = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_.]*$`)
 
-// decoderNumber is the normative decoder number grammar of §4, before the
+// decoderNumber is the decoder number grammar, before the
 // forbidden-leading-zero check.
 var decoderNumber = regexp.MustCompile(`^-?[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$`)
 
@@ -46,7 +46,7 @@ func FormatString(s string, ctx Context) (string, error) {
 	return s, nil
 }
 
-// NeedsQuoting reports whether the §7.2 rules require s to be quoted.
+// NeedsQuoting reports whether s must be quoted.
 func NeedsQuoting(s string, ctx Context) bool {
 	if s == "" {
 		return true
@@ -92,7 +92,7 @@ func hasControl(s string) bool {
 	return false
 }
 
-// QuoteString escapes s per the §7.1 encoder column and wraps it in quotes.
+// QuoteString escapes s and wraps it in quotes.
 func QuoteString(s string) (string, error) {
 	if err := ValidateString(s); err != nil {
 		return "", err
@@ -125,7 +125,7 @@ func QuoteString(s string) (string, error) {
 }
 
 // ValidateString rejects host strings that are not sequences of Unicode scalar
-// values (§3). In Go this surfaces as invalid UTF-8, which includes the WTF-8
+// values. In Go this surfaces as invalid UTF-8, which includes the WTF-8
 // encoding of an unpaired surrogate.
 func ValidateString(s string) error {
 	if utf8.ValidString(s) {
@@ -134,7 +134,8 @@ func ValidateString(s string) error {
 	return fmt.Errorf("toon: string is not valid UTF-8 (unpaired surrogate or malformed sequence)")
 }
 
-// EncodeKey renders a key, entry key, or field name per §7.3.
+// EncodeKey renders a key, entry key, or field name, quoted unless it may be
+// emitted bare.
 func EncodeKey(key string) (string, error) {
 	if IsUnquotedKey(key) {
 		return key, nil
@@ -142,12 +143,12 @@ func EncodeKey(key string) (string, error) {
 	return QuoteString(key)
 }
 
-// IsUnquotedKey reports whether key matches the §7.3 unquoted-key pattern.
+// IsUnquotedKey reports whether key may be emitted without quotes.
 func IsUnquotedKey(key string) bool {
 	return unquotedKey.MatchString(key)
 }
 
-// FormatNumber renders f in the canonical form of §2. Values inside the
+// FormatNumber renders f in canonical number form. Values inside the
 // canonical range use plain decimal notation; outside it, JSON exponent
 // notation with a lowercase "e" and an explicit sign is emitted.
 func FormatNumber(f float64) string {
@@ -182,9 +183,9 @@ func normalizeExponent(s string) string {
 	return mantissa + "e" + sign + exp
 }
 
-// ParseNumberToken applies the normative decoder number grammar of §4. The
-// boolean result reports whether the token is a number at all; tokens that are
-// not are plain strings.
+// ParseNumberToken parses token with the decoder number grammar. The boolean
+// result reports whether the token is a number at all; tokens that are not are
+// plain strings.
 func ParseNumberToken(token string) (float64, bool) {
 	if !decoderNumber.MatchString(token) {
 		return 0, false
@@ -197,15 +198,15 @@ func ParseNumberToken(token string) (float64, bool) {
 		return 0, false
 	}
 	if f == 0 {
-		// -0 decodes to 0 (§4).
+		// -0 decodes to 0.
 		return 0, true
 	}
 	return f, true
 }
 
 // hasForbiddenLeadingZeros reports whether the integer part of token carries
-// leading zeros that §4 forbids. A single "0" integer part followed by a
-// fraction or exponent is allowed.
+// leading zeros the number grammar forbids. A single "0" integer part followed
+// by a fraction or exponent is allowed.
 func hasForbiddenLeadingZeros(token string) bool {
 	digits := strings.TrimPrefix(token, "-")
 	if len(digits) < 2 || digits[0] != '0' {

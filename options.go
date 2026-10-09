@@ -6,7 +6,7 @@ import (
 )
 
 // Delimiter identifies the character used to split field entries, inline array
-// values, tabular row cells, and keyed entry-row cells (§1.5).
+// values, tabular row cells, and keyed entry-row cells.
 type Delimiter rune
 
 const (
@@ -43,7 +43,7 @@ func (d Delimiter) rune() rune {
 }
 
 // symbol returns the delimiter symbol as it appears inside a bracket segment.
-// Comma is implied by its absence (§6).
+// Comma is implied by its absence.
 func (d Delimiter) symbol() string {
 	if d == DelimiterComma {
 		return ""
@@ -84,9 +84,8 @@ func WithIndent(spaces int) EncoderOption {
 	}
 }
 
-// WithDelimiter configures the document delimiter. Conforming encoders declare
-// it as the active delimiter of every header they emit (§11.1). A value other
-// than DelimiterComma, DelimiterTab, or DelimiterPipe is ignored.
+// WithDelimiter sets the delimiter that every emitted header declares. A value
+// other than DelimiterComma, DelimiterTab, or DelimiterPipe is ignored.
 func WithDelimiter(delimiter Delimiter) EncoderOption {
 	return func(o *encoderOptions) {
 		if validDelimiter(delimiter) {

@@ -13,11 +13,9 @@ import (
 	parsepkg "github.com/toon-format/toon-go/internal/parse"
 )
 
-// Decoder parses TOON documents into Go values that match the data model of §2.
-// Numbers are returned as float64, objects as map[string]any, and arrays as
-// []any. Because Go maps do not retain insertion order, the decoder does not
-// preserve document key order; §2 requires this deviation to be documented.
-// The zero value decodes with the default options.
+// Decoder parses TOON documents into float64 numbers, map[string]any objects,
+// and []any arrays. Go maps keep no insertion order, so document key order is
+// lost. The zero value decodes with the default options.
 type Decoder struct {
 	opts []DecoderOption
 }
@@ -75,7 +73,7 @@ func DecodeString(s string, opts ...DecoderOption) (any, error) {
 	return NewDecoder(opts...).DecodeString(s)
 }
 
-// docLine is one line of the comment-stripped document (§5.1).
+// docLine is one line of the comment-stripped document.
 type docLine struct {
 	number  int
 	depth   int
@@ -84,7 +82,7 @@ type docLine struct {
 }
 
 // prepareLines removes the byte-order mark, normalizes line terminators, strips
-// comment lines and trailing spaces, and computes each line's depth (§5.1, §12).
+// comment lines and trailing spaces, and computes each line's depth.
 func prepareLines(input string, cfg decoderOptions) ([]docLine, error) {
 	input = strings.TrimPrefix(input, "\ufeff")
 	raw := strings.Split(input, "\n")
@@ -124,7 +122,7 @@ func prepareLines(input string, cfg decoderOptions) ([]docLine, error) {
 }
 
 // isCommentLine reports whether the line's first character after zero or more
-// spaces is "#" (§5.1). A tab in the leading whitespace disqualifies it.
+// spaces is "#". A tab in the leading whitespace disqualifies it.
 func isCommentLine(text string) bool {
 	i := 0
 	for i < len(text) && text[i] == ' ' {
@@ -183,7 +181,7 @@ func newParser(lines []docLine, cfg decoderOptions) *parser {
 }
 
 // spanState tracks an open header span: the scope's content depth and how many
-// items, rows, or entry rows it has consumed so far (§12).
+// items, rows, or entry rows it has consumed so far.
 type spanState struct {
 	contentDepth int
 	consumed     int
@@ -244,7 +242,6 @@ func (p *parser) countNonBlank() int {
 	return count
 }
 
-// parseDocument applies the root-form discovery rules of §5.
 func (p *parser) parseDocument() (any, error) {
 	idx, ok := p.nextNonBlank(0)
 	if !ok {
@@ -382,7 +379,7 @@ func (p *parser) scopeDepth(depth int) int {
 }
 
 // parseKeyValueLine consumes a key-value line whose key stands at depth and
-// returns its decoded key and value (§8).
+// returns its decoded key and value.
 func (p *parser) parseKeyValueLine(line docLine, depth int) (string, any, error) {
 	colon := parsepkg.IndexUnquoted(line.content, ':')
 	if colon < 0 {
@@ -430,7 +427,6 @@ func (p *parser) parseNestedObject(depth int) (map[string]any, error) {
 	return result, nil
 }
 
-// assign stores a decoded field, applying the duplicate-key rules of §14.3.
 func (p *parser) assign(result map[string]any, seen map[string]bool, key string, value any, number int) error {
 	if seen[key] {
 		if p.cfg.strict {
@@ -443,7 +439,7 @@ func (p *parser) assign(result map[string]any, seen map[string]bool, key string,
 }
 
 // parseArrayBody decodes the value of a non-keyed header whose scope content
-// stands at contentDepth (§9.1–§9.4).
+// stands at contentDepth.
 func (p *parser) parseArrayBody(hdr header, contentDepth int) (any, error) {
 	if hdr.fields != nil {
 		return p.parseTabularRows(hdr, contentDepth)
@@ -521,7 +517,8 @@ func (p *parser) parseTabularRows(hdr header, contentDepth int) (any, error) {
 	return rows, nil
 }
 
-// isRowLine applies the §9.3 row versus key-value disambiguation.
+// isRowLine reports whether content is a tabular row rather than the key-value
+// line that ends the rows.
 func isRowLine(content string, delimiter rune) bool {
 	colon := parsepkg.IndexUnquoted(content, ':')
 	if colon < 0 {
@@ -637,9 +634,9 @@ func (p *parser) parseListItems(hdr header, contentDepth int) (any, error) {
 	return items, nil
 }
 
-// parseListItem decodes one list item whose hyphen stands at itemDepth (§9.4,
-// §10). A keyed first field carried on the hyphen line stands at itemDepth+1,
-// so any scope it opens has its content at itemDepth+2.
+// parseListItem decodes one list item whose hyphen stands at itemDepth. A keyed
+// first field carried on the hyphen line stands at itemDepth+1, so any scope it
+// opens has its content at itemDepth+2.
 func (p *parser) parseListItem(line docLine, itemDepth int) (any, error) {
 	rest := strings.TrimLeft(strings.TrimPrefix(line.content, "-"), " ")
 
@@ -735,7 +732,7 @@ func isScalarLine(content string) bool {
 }
 
 // buildFromCells materializes one row or entry value by walking the field list
-// depth-first (§9.3).
+// depth-first.
 func buildFromCells(nodes []fieldNode, cells []string, index *int) (map[string]any, error) {
 	result := make(map[string]any, len(nodes))
 	for _, node := range nodes {
@@ -779,8 +776,8 @@ func decodeKeyToken(token string) (string, error) {
 	return token, nil
 }
 
-// decodeValueToken maps a primitive token to a host value per §4. The empty
-// array form is positional and is therefore handled by the caller.
+// decodeValueToken maps a primitive token to a host value. The empty array form
+// is positional and is therefore handled by the caller.
 func decodeValueToken(token string) (any, error) {
 	if token == "" {
 		return "", nil
@@ -805,7 +802,7 @@ func decodeValueToken(token string) (any, error) {
 	return token, nil
 }
 
-// header is a parsed array, tabular, or keyed header (§6).
+// header is a parsed array, tabular, or keyed header.
 type header struct {
 	key       string
 	hasKey    bool
@@ -832,14 +829,13 @@ type headerStatus int
 
 const (
 	// headerNotHeader means the line is not a header and falls through to the
-	// key-value class (§5.2).
+	// key-value class.
 	headerNotHeader headerStatus = iota
-	// headerMalformed means the line opens like a header but violates §6.
+	// headerMalformed means the line opens like a header but breaks its grammar.
 	headerMalformed
 	headerOK
 )
 
-// parseHeaderSyntax applies the header grammar of §6 to a line's content.
 func parseHeaderSyntax(content string, strict bool) (header, headerStatus) {
 	bracket := parsepkg.IndexUnquoted(content, '[')
 	if bracket < 0 {
@@ -858,7 +854,6 @@ func parseHeaderSyntax(content string, strict bool) (header, headerStatus) {
 	hdr := header{delimiter: DelimiterComma}
 	keyPart := content[:bracket]
 	if strings.TrimRight(keyPart, " \t") != keyPart {
-		// Whitespace between a key and its bracket segment (§6).
 		return header{}, headerMalformed
 	}
 	if keyPart != "" {
@@ -900,7 +895,6 @@ func parseHeaderSyntax(content string, strict bool) (header, headerStatus) {
 		return header{}, headerMalformed
 	}
 	if hdr.fields != nil && hdr.inline != "" {
-		// A fields-bearing header carries no inline content (§6).
 		return header{}, headerMalformed
 	}
 	return hdr, headerOK
@@ -916,7 +910,7 @@ func parseBracketSegment(segment string) (int, bool, Delimiter, bool) {
 		return 0, false, DelimiterComma, false
 	}
 	if digits > 1 && segment[0] == '0' {
-		// Leading zeros are not a canonical length (§6).
+		// Leading zeros are not a canonical length.
 		return 0, false, DelimiterComma, false
 	}
 	length, err := strconv.Atoi(segment[:digits])
@@ -946,7 +940,7 @@ func parseBracketSegment(segment string) (int, bool, Delimiter, bool) {
 }
 
 // matchBrace returns the index of the "}" that closes the field list starting at
-// index 0, ignoring braces inside quoted names (§6).
+// index 0, ignoring braces inside quoted names.
 func matchBrace(s string) int {
 	depth := 0
 	inQuotes := false
@@ -977,7 +971,7 @@ func matchBrace(s string) int {
 }
 
 // parseFieldList parses the entries of a field list, recursing into nested
-// field groups (§6, §9.3).
+// field groups.
 func parseFieldList(body string, delimiter Delimiter, strict bool) ([]fieldNode, error) {
 	if body == "" {
 		return nil, errors.New("empty field list")
@@ -1019,18 +1013,18 @@ func parseFieldList(body string, delimiter Delimiter, strict bool) ([]fieldNode,
 			return nil, err
 		}
 		if seen[name] && strict {
-			// Non-strict mode keeps the duplicate so that the field walk of
-			// §9.3 yields last-write-wins in every decoded element (§14.3).
 			return nil, fmt.Errorf("duplicate field name %q", name)
 		}
 		seen[name] = true
+		// Non-strict mode keeps a duplicate field, so the field walk yields
+		// last-write-wins in every decoded element.
 		nodes = append(nodes, fieldNode{name: name, children: children})
 	}
 	return nodes, nil
 }
 
 // checkForeignDelimiters rejects a field list that uses an unquoted delimiter
-// character other than the one declared by the bracket segment (§6, §14.2).
+// character other than the one declared by the bracket segment.
 func checkForeignDelimiters(body string, delimiter Delimiter) error {
 	for _, candidate := range []Delimiter{DelimiterComma, DelimiterTab, DelimiterPipe} {
 		if candidate == delimiter {

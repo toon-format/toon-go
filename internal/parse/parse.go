@@ -1,6 +1,6 @@
 // Package parse implements the lexical helpers the TOON decoder needs:
-// unescaping quoted tokens (§7.1), scanning for unquoted characters (§5.2), and
-// splitting delimiter-separated cell sequences (§11.2).
+// unescaping quoted tokens, scanning for unquoted characters, and splitting
+// delimiter-separated cell sequences.
 package parse
 
 import (
@@ -11,8 +11,8 @@ import (
 	"unicode/utf8"
 )
 
-// UnquoteString removes the surrounding quotes from token and applies the
-// decoder column of the §7.1 escape table.
+// UnquoteString removes the surrounding quotes from token and resolves its
+// escape sequences.
 func UnquoteString(token string) (string, error) {
 	if len(token) < 2 || token[0] != '"' || token[len(token)-1] != '"' {
 		return "", errors.New("unterminated quoted string")
@@ -68,14 +68,14 @@ func UnquoteString(token string) (string, error) {
 	return b.String(), nil
 }
 
-// IsQuotedToken reports whether token starts with a double quote, which per
-// §7.4 obliges it to be a complete quoted token.
+// IsQuotedToken reports whether token starts with a double quote, which obliges
+// it to be a complete quoted token.
 func IsQuotedToken(token string) bool {
 	return len(token) > 0 && token[0] == '"'
 }
 
-// ValidateQuotedToken enforces the §7.4 quoted-token boundary rule: the closing
-// quote must be the token's last character.
+// ValidateQuotedToken checks that a quoted token's closing quote is its last
+// character.
 func ValidateQuotedToken(token string) error {
 	if !IsQuotedToken(token) {
 		return nil
@@ -136,8 +136,8 @@ func IndexUnquoted(s string, target rune) int {
 }
 
 // SplitDelimited splits a cell sequence on delimiter, honouring quoted regions,
-// preserving empty tokens, and trimming the surrounding U+0020 of each token
-// (§11.2, §12). A sequence that trims to nothing yields zero cells.
+// preserving empty tokens, and trimming the surrounding U+0020 of each token.
+// A sequence that trims to nothing yields zero cells.
 func SplitDelimited(segment string, delimiter rune) []string {
 	if strings.Trim(segment, " ") == "" {
 		return nil

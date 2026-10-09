@@ -13,8 +13,8 @@ import (
 	formatpkg "github.com/toon-format/toon-go/internal/format"
 )
 
-// normalize applies the data-model rules from Section 2 and Section 3 to a Go
-// value, producing a structure ready for encoding. The returned value is one of:
+// normalize converts a Go value to the TOON data model, ready for encoding. The
+// returned value is one of:
 //   - nil
 //   - bool
 //   - string
