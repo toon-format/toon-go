@@ -18,6 +18,8 @@ const (
 	DelimiterPipe Delimiter = '|'
 )
 
+// String returns "comma", "tab", or "pipe", or delimiter('x') for any other
+// rune x.
 func (d Delimiter) String() string {
 	switch d {
 	case DelimiterComma:
@@ -72,7 +74,8 @@ func defaultEncoderOptions() encoderOptions {
 	}
 }
 
-// WithIndent configures the number of spaces used per indentation level.
+// WithIndent configures the number of spaces used per indentation level. A
+// value below 1 is ignored.
 func WithIndent(spaces int) EncoderOption {
 	return func(o *encoderOptions) {
 		if spaces > 0 {
@@ -82,7 +85,8 @@ func WithIndent(spaces int) EncoderOption {
 }
 
 // WithDelimiter configures the document delimiter. Conforming encoders declare
-// it as the active delimiter of every header they emit (§11.1).
+// it as the active delimiter of every header they emit (§11.1). A value other
+// than DelimiterComma, DelimiterTab, or DelimiterPipe is ignored.
 func WithDelimiter(delimiter Delimiter) EncoderOption {
 	return func(o *encoderOptions) {
 		if validDelimiter(delimiter) {
@@ -91,7 +95,8 @@ func WithDelimiter(delimiter Delimiter) EncoderOption {
 	}
 }
 
-// WithTimeFormatter specifies the formatter used for time.Time normalization.
+// WithTimeFormatter specifies the formatter used for time.Time normalization. A
+// nil formatter is ignored.
 func WithTimeFormatter(formatter func(time.Time) string) EncoderOption {
 	return func(o *encoderOptions) {
 		if formatter != nil {
@@ -128,7 +133,8 @@ func WithStrictMode(strict bool) DecoderOption {
 	}
 }
 
-// WithDecoderIndent configures the expected indentation step.
+// WithDecoderIndent configures the expected indentation step. A value below 1
+// is ignored.
 func WithDecoderIndent(spaces int) DecoderOption {
 	return func(o *decoderOptions) {
 		if spaces > 0 {
