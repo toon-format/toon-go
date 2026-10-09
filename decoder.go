@@ -15,7 +15,8 @@ import (
 
 // Decoder parses TOON documents into float64 numbers, map[string]any objects,
 // and []any arrays. Go maps keep no insertion order, so document key order is
-// lost. The zero value decodes with the default options.
+// lost. The zero value decodes with the default options. A Decoder is safe for
+// concurrent use.
 type Decoder struct {
 	opts []DecoderOption
 }

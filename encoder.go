@@ -10,7 +10,7 @@ import (
 )
 
 // Encoder serializes Go values as TOON documents. The zero value encodes with
-// the default options.
+// the default options. An Encoder is safe for concurrent use.
 type Encoder struct {
 	opts []EncoderOption
 }
