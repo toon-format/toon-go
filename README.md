@@ -66,7 +66,7 @@ Without a destination type, `Decode` and `DecodeString` return `map[string]any`,
 
 ## Specification
 
-Targets [TOON spec v4.4](https://github.com/toon-format/spec/blob/v4.4.0/SPEC.md), and the test suite runs that version's conformance fixtures.
+Targets [TOON spec v4.4](https://github.com/toon-format/spec/blob/v4.4.0/SPEC.md), and the test suite runs the spec's conformance fixtures.
 
 - **Numbers decode to `float64`** – integers beyond 2^53 lose precision and a token that overflows `float64` (e.g. `1e999`) decodes as a string; on encode, integers beyond ±(2^53 − 1), `*big.Int` values included, become quoted decimal strings ([§4](https://github.com/toon-format/spec/blob/v4.4.0/SPEC.md#4-decoding-interpretation-reference-decoder))
 - **Structs encode as objects keyed by their `toon` tags** – `toon:"name"` renames, `toon:"name,omitempty"` skips zero values, `toon:"-"` skips the field, a field without a `toon` tag falls back to its `json` tag, and an untagged field uses its Go name; maps need string keys, `time.Time` and `fmt.Stringer` values become strings, and `NaN` and `±Inf` become `null` ([§3](https://github.com/toon-format/spec/blob/v4.4.0/SPEC.md#3-encoding-normalization-reference-encoder))
