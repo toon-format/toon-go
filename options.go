@@ -55,7 +55,7 @@ func validDelimiter(d Delimiter) bool {
 	return d == DelimiterComma || d == DelimiterTab || d == DelimiterPipe
 }
 
-// EncoderOption mutates encoding behaviour.
+// EncoderOption configures an Encoder.
 type EncoderOption func(*encoderOptions)
 
 type encoderOptions struct {
@@ -104,7 +104,7 @@ func WithTimeFormatter(formatter func(time.Time) string) EncoderOption {
 	}
 }
 
-// DecoderOption mutates decoder behaviour.
+// DecoderOption configures a Decoder.
 type DecoderOption func(*decoderOptions)
 
 type decoderOptions struct {

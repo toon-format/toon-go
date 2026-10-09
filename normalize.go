@@ -175,7 +175,7 @@ func normalizeFloat(f float64) (normalizedValue, error) {
 func normalizeNumberString(s string) (normalizedValue, error) {
 	f, err := strconv.ParseFloat(s, 64)
 	if err != nil {
-		// Preserve as string literal; encoder will handle quoting.
+		// A token that float64 cannot parse stays a string.
 		return s, nil
 	}
 	if math.IsInf(f, 0) || math.IsNaN(f) {
