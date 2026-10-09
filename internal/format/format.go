@@ -3,6 +3,7 @@
 package format
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"regexp"
@@ -131,7 +132,7 @@ func ValidateString(s string) error {
 	if utf8.ValidString(s) {
 		return nil
 	}
-	return fmt.Errorf("toon: string is not valid UTF-8 (unpaired surrogate or malformed sequence)")
+	return errors.New("toon: string is not valid UTF-8 (unpaired surrogate or malformed sequence)")
 }
 
 // EncodeKey renders a key, entry key, or field name, quoted unless it may be
