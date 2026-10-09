@@ -39,7 +39,8 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 	case json.Number:
 		return normalizeNumberString(val.String())
 	case float32:
-		return normalizeFloat(float64(val))
+		// Formatting at float64 precision would print float32(0.1) as 0.10000000149011612.
+		return normalizeNumberString(strconv.FormatFloat(float64(val), 'g', -1, 32))
 	case float64:
 		return normalizeFloat(val)
 	case int, int8, int16, int32, int64:

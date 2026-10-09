@@ -77,6 +77,14 @@ func TestMarshalLargeIntegerPrecision(t *testing.T) {
 	}
 }
 
+func TestMarshalFloat32ShortestDigits(t *testing.T) {
+	doc, err := toon.MarshalString([]float32{0.1, 1e-6, 3.4e38})
+	if err != nil {
+		t.Fatalf("MarshalString: %v", err)
+	}
+	expectLines(t, doc, "[3]: 0.1,0.000001,3.4e+38")
+}
+
 func TestMarshalCustomTimeFormatter(t *testing.T) {
 	ts := time.Date(2024, 1, 2, 3, 4, 5, 6, time.UTC)
 	doc, err := toon.MarshalString(map[string]any{"ts": ts, "ptr": &ts}, toon.WithTimeFormatter(func(t time.Time) string {
