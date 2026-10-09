@@ -23,3 +23,11 @@ func TestUnmarshalNonPointer(t *testing.T) {
 		t.Fatalf("expected error for non-pointer target")
 	}
 }
+
+func TestHeaderErrorNamesTheFieldListCause(t *testing.T) {
+	_, err := toon.DecodeString("a[1]{x,x}:\n  1,2")
+	want := `line 1: duplicate field name "x"`
+	if err == nil || err.Error() != want {
+		t.Fatalf("error = %v, want %q", err, want)
+	}
+}

@@ -286,7 +286,7 @@ func (p *parser) parseDocument() (any, error) {
 			return value, nil
 		}
 	case headerMalformed:
-		return nil, errorAt(line.number, "malformed array header")
+		return nil, hdr.malformedError()
 	}
 
 	if p.countNonBlank() == 1 && isScalarLine(line.content) {
@@ -356,7 +356,7 @@ func (p *parser) parseObjectInto(result map[string]any, seen map[string]bool, mi
 		case status == headerOK && !hdr.hasKey:
 			return errorAt(line.number, "keyless array header inside an object")
 		case status == headerMalformed:
-			return errorAt(line.number, "malformed array header")
+			return hdr.malformedError()
 		}
 
 		key, value, err := p.parseKeyValueLine(line, depth)
@@ -655,7 +655,7 @@ func (p *parser) parseListItem(line docLine, itemDepth int) (any, error) {
 
 	switch status {
 	case headerMalformed:
-		return nil, errorAt(line.number, "malformed array header")
+		return nil, hdr.malformedError()
 	case headerOK:
 		if !hdr.hasKey {
 			if hdr.fields != nil || hdr.keyed {
@@ -815,6 +815,17 @@ type header struct {
 	fields    []fieldNode
 	inline    string
 	number    int
+	// err tells why a malformed header's field list breaks the grammar.
+	err error
+}
+
+// malformedError reports a malformed header, through its field list's error
+// when that list is the cause.
+func (h header) malformedError() error {
+	if h.err != nil {
+		return errorWrap(h.number, h.err)
+	}
+	return errorAt(h.number, "malformed array header")
 }
 
 type headerStatus int
@@ -874,7 +885,7 @@ func parseHeaderSyntax(content string, strict bool) (header, headerStatus) {
 		}
 		fields, err := parseFieldList(after[1:fieldsEnd], delimiter, strict)
 		if err != nil {
-			return header{}, headerMalformed
+			return header{err: err}, headerMalformed
 		}
 		hdr.fields = fields
 		after = after[fieldsEnd+1:]
