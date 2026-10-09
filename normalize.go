@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	formatpkg "github.com/toon-format/toon-go/internal/format"
@@ -107,13 +108,7 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 			})
 		}
 		slices.SortFunc(fields, func(a, b Field) int {
-			if a.Key < b.Key {
-				return -1
-			}
-			if a.Key > b.Key {
-				return 1
-			}
-			return 0
+			return strings.Compare(a.Key, b.Key)
 		})
 		return Object{Fields: fields}, nil
 	case reflect.Struct:
