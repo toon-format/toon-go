@@ -37,12 +37,12 @@ func normalize(v any, cfg encoderOptions) (normalizedValue, error) {
 	case bool:
 		return val, nil
 	case json.Number:
-		return normalizeNumberString(val.String())
+		return normalizeNumberString(val.String()), nil
 	case float32:
 		// Formatting at float64 precision would print float32(0.1) as 0.10000000149011612.
-		return normalizeNumberString(strconv.FormatFloat(float64(val), 'g', -1, 32))
+		return normalizeNumberString(strconv.FormatFloat(float64(val), 'g', -1, 32)), nil
 	case float64:
-		return normalizeFloat(val)
+		return normalizeFloat(val), nil
 	case int, int8, int16, int32, int64:
 		i := reflect.ValueOf(val).Int()
 		if i > maxSafeInteger || i < -maxSafeInteger {
@@ -158,21 +158,18 @@ func normalizeObjectFields(fields []Field, cfg encoderOptions) (Object, error) {
 	return Object{Fields: normalized}, nil
 }
 
-func normalizeFloat(f float64) (normalizedValue, error) {
+func normalizeFloat(f float64) normalizedValue {
 	if math.IsNaN(f) || math.IsInf(f, 0) {
-		return nil, nil
+		return nil
 	}
-	return numberValue{literal: formatpkg.FormatNumber(f)}, nil
+	return numberValue{literal: formatpkg.FormatNumber(f)}
 }
 
-func normalizeNumberString(s string) (normalizedValue, error) {
+func normalizeNumberString(s string) normalizedValue {
 	f, err := strconv.ParseFloat(s, 64)
 	if err != nil {
 		// A token that float64 cannot parse stays a string.
-		return s, nil
+		return s
 	}
-	if math.IsInf(f, 0) || math.IsNaN(f) {
-		return nil, nil
-	}
-	return numberValue{literal: formatpkg.FormatNumber(f)}, nil
+	return normalizeFloat(f)
 }
